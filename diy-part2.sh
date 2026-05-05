@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ==========================================
-# 自启动脚本 + 自动共享
+# 自启动脚本 + 自动共享 + 打印包克隆
 # ==========================================
 
 # 创建自启动目录
@@ -106,5 +106,13 @@ stop() {
 EOF
 chmod +x files/etc/init.d/auto-share-init
 ln -sf ../init.d/auto-share-init files/etc/rc.d/S98auto-share-init
+
+# ---------- 克隆打印包（增加重试） ----------
+echo "克隆打印包..."
+rm -rf package/printing-packages
+git clone --depth=1 https://github.com/master-0123/openwrt-printing-packages package/printing-packages || \
+git clone --depth=1 https://github.com/master-0123/openwrt-printing-packages package/printing-packages
+sed -i 's/+libmesa//g' package/printing-packages/cairo/Makefile 2>/dev/null
+echo "✅ 打印包克隆完成"
 
 echo "✅ diy-part2.sh 执行完成"
