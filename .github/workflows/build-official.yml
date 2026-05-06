@@ -59,11 +59,17 @@ jobs:
     - name: Remove conflicting packages
       run: |
         cd openwrt
+        
+        # 删除 smpackage 中与官方冲突的包
+        rm -rf feeds/smpackage/{base-files,dnsmasq,firewall*,fullconenat,libnftnl,nftables,ppp,opkg,ucl,upx,vsftpd*,miniupnpd-iptables,wireless-regdb} 2>/dev/null || true
+        
+        # 删除有依赖问题的 onionshare-cli
         rm -rf feeds/packages/net/onionshare-cli 2>/dev/null || true
         find . -name "onionshare-cli" -type d -exec rm -rf {} \; 2>/dev/null || true
         for idx in feeds/*.index; do
           [ -f "$idx" ] && sed -i '/onionshare-cli/d' "$idx" || true
         done
+        
         rm -rf tmp/
         echo "✅ 冲突包已清除"
 
