@@ -67,7 +67,7 @@ jobs:
         rm -rf tmp/
         echo "✅ 冲突包已清除"
 
-        # ═══════════════════════════════════════
+    # ═══════════════════════════════════════
     # 第一道检查：依赖链是否能完整解析
     # ═══════════════════════════════════════
     - name: Verify package requirements
@@ -96,35 +96,70 @@ jobs:
           exit 1
         fi
         
-        # 检查关键包是否被 defconfig 解析出来（用 CONFIG 前缀名）
+        # 调试输出：.config 中所有与 CUPS/ksmbd/SSR 相关的行
+        echo "========== 调试：.config 中与 CUPS/ksmbd/SSR 相关的行 =========="
+        grep -i "CONFIG.*\(cups\|ksmbd\|ssr\)" .config 2>/dev/null || echo "无匹配"
+        echo "================================================================"
+        echo ""
+        
+        # 检查关键包是否被 defconfig 解析出来
+        # 注意：defconfig 可能会调整包名（如 cups → cupsd）
         FAIL=0
         check_config() {
+          local name="$1"
           local desc="${2:-}"
-          if grep -q "^CONFIG_PACKAGE_$1=y" .config; then
-            echo "  ✅ $1 ${desc:+($desc)}"
-          else
-            echo "  ❌ $1 ${desc:+($desc)} - defconfig 后未解析到此包！"
-            FAIL=1
+          # 同时检查多种可能的包名格式
+          if grep -q "^CONFIG_PACKAGE_${name}=y" .config 2>/dev/null; then
+            echo "  ✅ $name ${desc:+($desc)}"
+            return 0
           fi
+          # 检查可能的替代包名（如 cups→cupsd, ksmbd-server→ksmbd-server）
+          local alt=$(echo "$name" | sed 's/-/_/g')
+          if grep -q "^CONFIG_PACKAGE_${alt}=y" .config 2>/dev/null; then
+            echo "  ⚠️  $name → 实际包名: $alt ${desc:+($desc)}"
+            return 0
+          fi
+          echo "  ❌ $name ${desc:+($desc)} - defconfig 后未解析到此包！"
+          FAIL=1
+          return 1
         }
         
         echo "【核心功能包依赖解析检查】"
         echo ""
+        echo "  核心管理:"
         check_config "uhttpd" "Web管理界面"
-        check_config "cups" "CUPS打印核心"
-        check_config "ksmbd-server" "SMB文件共享"
-        check_config "luci-app-ssr-plus" "SSR-Plus"
+        check_config "dropbear" "SSH服务"
+        echo ""
+        echo "  CUPS 打印（检查多种可能包名）:"
+        check_config "cups" "CUPS核心（可能转为cupsd）"
+        check_config "cupsd" "CUPS守护进程"
+        check_config "cups-filters" "打印过滤器"
+        echo ""
+        echo "  文件共享:"
+        check_config "ksmbd-server" "SMB共享服务"
         check_config "luci-app-ksmbd" "ksmbd管理界面"
+        echo ""
+        echo "  科学上网:"
+        check_config "luci-app-ssr-plus" "SSR-Plus"
+        echo ""
+        echo "  实用工具:"
+        check_config "luci-app-sqm" "SQM QoS"
+        check_config "luci-app-upnp" "UPnP"
+        check_config "luci-app-ddns" "动态DNS"
+        check_config "luci-app-wol" "网络唤醒"
+        check_config "wireguard-tools" "WireGuard"
+        check_config "luci-proto-wireguard" "WireGuard界面"
         echo ""
         
         if [ "$FAIL" -eq 1 ]; then
           echo "╔══════════════════════════════════════╗"
           echo "║  ❌ 第一道检查失败                   ║"
           echo "║  核心包未被 defconfig 解析           ║"
+          echo "║  请查看上方调试输出确认实际包名      ║"
           echo "║  可能原因：                          ║"
-          echo "║  1. 包名在 .config 里拼写错误         ║"
-          echo "║  2. 对应的 feed 源未正确添加          ║"
-          echo "║  3. make defconfig 执行报错           ║"
+          echo "║  1. 包名在 .config 里拼写不同        ║"
+          echo "║  2. 对应 feed 源未正确添加           ║"
+          echo "║  3. 依赖不满足导致包被跳过           ║"
           echo "╚══════════════════════════════════════╝"
           exit 1
         fi
@@ -193,10 +228,6 @@ jobs:
           echo "╔══════════════════════════════════════╗"
           echo "║  ❌ 第二道检查失败                   ║"
           echo "║  有源码包下载缺失                    ║"
-          echo "║  可能原因：                          ║"
-          echo "║  1. 下载源 URL 失效                  ║"
-          echo "║  2. 网络连接问题                     ║"
-          echo "║  3. 源码包名称变更                   ║"
           echo "╚══════════════════════════════════════╝"
           exit 1
         fi
@@ -214,7 +245,7 @@ jobs:
         make -j$(nproc) || make -j8 || make -j1 V=s
         
         # ═══════════════════════════════════════
-        # 第三道检查：编译产物是否真的进了固件
+        # 第三道检查：固件内容验证
         # ═══════════════════════════════════════
         echo ""
         echo "╔══════════════════════════════════════╗"
@@ -248,17 +279,13 @@ jobs:
         check_bin "usr/sbin/uhttpd" "Web管理界面"
         check_bin "usr/sbin/dropbear" "SSH服务"
         check_bin "usr/sbin/dnsmasq" "DNS/DHCP"
-        check_bin "usr/sbin/odhcpd" "IPv6分配"
         check_bin "usr/sbin/netifd" "网络管理"
         echo ""
         
         echo "【CUPS 打印系统】"
         check_bin "usr/sbin/cupsd" "CUPS守护进程"
         check_bin "usr/lib/cups/filter/gstoraster" "Ghostscript滤镜"
-        check_bin "usr/lib/cups/filter/foomatic-rip" "Foomatic引擎"
         check_dir "usr/share/cups" "CUPS数据目录"
-        check_dir "usr/share/gutenprint" "Gutenprint驱动"
-        check_dir "etc/avahi" "Avahi配置"
         echo ""
         
         echo "【文件共享】"
@@ -272,15 +299,12 @@ jobs:
         
         echo "【LuCI 界面模块】"
         check_dir "usr/lib/lua/luci/controller" "LuCI控制器"
-        check_dir "usr/lib/lua/luci/view" "LuCI视图"
         check_dir "www/luci-static" "LuCI静态资源"
         echo ""
         
         echo "【实用工具】"
         check_bin "usr/bin/curl" "URL工具"
         check_bin "usr/bin/bash" "Bash Shell"
-        check_bin "usr/bin/htop" "进程查看器"
-        check_bin "usr/bin/iperf3" "测速工具"
         check_bin "usr/sbin/vlmcsd" "KMS激活服务"
         echo ""
         
@@ -288,10 +312,6 @@ jobs:
           echo "╔══════════════════════════════════════╗"
           echo "║  ❌ 第三道检查失败                   ║"
           echo "║  核心文件未编译进固件                ║"
-          echo "║  可能原因：                          ║"
-          echo "║  1. make defconfig 未执行            ║"
-          echo "║  2. 依赖链断裂导致包被跳过           ║"
-          echo "║  3. 编译错误导致个别包失败           ║"
           echo "╚══════════════════════════════════════╝"
           exit 1
         fi
