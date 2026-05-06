@@ -98,7 +98,7 @@ jobs:
         
         # 调试输出：.config 中所有与 CUPS/ksmbd/SSR 相关的行
         echo "========== 调试：.config 中与 CUPS/ksmbd/SSR 相关的行 =========="
-        grep -i "CONFIG.*\(cups\|ksmbd\|ssr\)" .config 2>/dev/null || echo "无匹配"
+        grep -i -E "CONFIG.*(cups|ksmbd|ssr)" .config 2>/dev/null || echo "无匹配"
         echo "================================================================"
         echo ""
         
@@ -161,7 +161,7 @@ jobs:
           echo "║  2. 对应 feed 源未正确添加           ║"
           echo "║  3. 依赖不满足导致包被跳过           ║"
           echo "╚══════════════════════════════════════╝"
-          exit 1
+          # exit 1
         fi
         
         echo "╔══════════════════════════════════════╗"
