@@ -12,6 +12,22 @@ find package -path "*/odhcpd-ipv6only*" -exec rm -rf {} \; 2>/dev/null
 find feeds -path "*/odhcpd-ipv6only*" -exec rm -rf {} \; 2>/dev/null
 echo "✅ 冲突包已移除（dnsmasq + odhcpd-ipv6only）"
 
+# 实用小功能
+./scripts/feeds install luci-app-autoreboot
+./scripts/feeds install luci-app-watchcat
+./scripts/feeds install luci-app-commands
+./scripts/feeds install luci-app-sqm
+./scripts/feeds install iperf3
+./scripts/feeds install luci-app-nlbwmon
+./scripts/feeds install htop
+./scripts/feeds install luci-app-usb-printer
+./scripts/feeds install luci-app-diskman
+./scripts/feeds install vlmcsd
+./scripts/feeds install luci-app-vlmcsd
+./scripts/feeds install kmod-wireguard
+./scripts/feeds install wireguard-tools
+./scripts/feeds install luci-proto-wireguard
+
 # 创建自启动目录
 mkdir -p files/etc/init.d files/etc/rc.d
 
