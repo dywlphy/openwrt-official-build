@@ -49,22 +49,28 @@ jobs:
         ./diy-part1.sh
         ./diy-part2.sh
         
-        # 先 defconfig 让基础配置生效
-        make defconfig
+        # 强制勾选 CUPS 完整依赖链（先勾底层库，再勾上层包）
+        ./scripts/config/conf -e CONFIG_PACKAGE_zlib
+        ./scripts/config/conf -e CONFIG_PACKAGE_libpng
+        ./scripts/config/conf -e CONFIG_PACKAGE_libjpeg-turbo
+        ./scripts/config/conf -e CONFIG_PACKAGE_libusb-1.0
+        ./scripts/config/conf -e CONFIG_PACKAGE_libpthread
+        ./scripts/config/conf -e CONFIG_PACKAGE_cups
+        ./scripts/config/conf -e CONFIG_PACKAGE_cups-filters
+        ./scripts/config/conf -e CONFIG_PACKAGE_cups-bjnp
+        ./scripts/config/conf -e CONFIG_PACKAGE_ghostscript
+        ./scripts/config/conf -e CONFIG_PACKAGE_gutenprint
+        ./scripts/config/conf -e CONFIG_PACKAGE_foomatic-db
+        ./scripts/config/conf -e CONFIG_PACKAGE_foomatic-db-engine
+        ./scripts/config/conf -e CONFIG_PACKAGE_avahi-daemon
+        ./scripts/config/conf -e CONFIG_PACKAGE_dbus
+        ./scripts/config/conf -e CONFIG_PACKAGE_luci-app-cupsd
+        ./scripts/config/conf -e CONFIG_PACKAGE_ksmbd-server
+        ./scripts/config/conf -e CONFIG_PACKAGE_luci-app-ksmbd
+        ./scripts/config/conf -e CONFIG_PACKAGE_luci-app-ssr-plus
+        ./scripts/config/conf -e CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Xray
         
-        # 强制勾选 smpackage 里的 CUPS 包（包名跟目录名可能不同）
-        ./scripts/config -e CONFIG_PACKAGE_cups
-        ./scripts/config -e CONFIG_PACKAGE_cups-filters
-        ./scripts/config -e CONFIG_PACKAGE_cups-bjnp
-        ./scripts/config -e CONFIG_PACKAGE_ghostscript
-        ./scripts/config -e CONFIG_PACKAGE_gutenprint
-        ./scripts/config -e CONFIG_PACKAGE_foomatic-db
-        ./scripts/config -e CONFIG_PACKAGE_foomatic-db-engine
-        ./scripts/config -e CONFIG_PACKAGE_avahi-daemon
-        ./scripts/config -e CONFIG_PACKAGE_dbus
-        ./scripts/config -e CONFIG_PACKAGE_luci-app-cupsd
-        
-        # 再次 defconfig 让依赖链自动补齐
+        # defconfig 自动补齐所有剩余依赖
         make defconfig
 
     - name: Update feeds
@@ -103,9 +109,6 @@ jobs:
         echo "╚══════════════════════════════════════╝"
         echo ""
         
-        # 方法：直接验证 .config 里 =y 的包数量
-        # 如果 defconfig 没执行或 feed 源没配好，=y 的包会很少
-        
         TOTAL=$(grep -c "^CONFIG_PACKAGE_.*=y" .config)
         echo "  已解析的包总数: $TOTAL"
         echo ""
@@ -119,24 +122,20 @@ jobs:
           # exit 1
         fi
         
-        # 调试输出：.config 中所有与 CUPS/ksmbd/SSR 相关的行
-        echo "========== 调试：.config 中与 CUPS/ksmbd/SSR 相关的行 =========="
+        # 调试输出
+        echo "========== .config 中 CUPS/ksmbd/SSR 相关行 =========="
         grep -i -E "CONFIG.*(cups|ksmbd|ssr)" .config 2>/dev/null || echo "无匹配"
-        echo "================================================================"
+        echo "========================================================"
         echo ""
         
-        # 检查关键包是否被 defconfig 解析出来
-        # 注意：defconfig 可能会调整包名（如 cups → cupsd）
         FAIL=0
         check_config() {
           local name="$1"
           local desc="${2:-}"
-          # 同时检查多种可能的包名格式
           if grep -q "^CONFIG_PACKAGE_${name}=y" .config 2>/dev/null; then
             echo "  ✅ $name ${desc:+($desc)}"
             return 0
           fi
-          # 检查可能的替代包名（如 cups→cupsd, ksmbd-server→ksmbd-server）
           local alt=$(echo "$name" | sed 's/-/_/g')
           if grep -q "^CONFIG_PACKAGE_${alt}=y" .config 2>/dev/null; then
             echo "  ⚠️  $name → 实际包名: $alt ${desc:+($desc)}"
@@ -153,8 +152,8 @@ jobs:
         check_config "uhttpd" "Web管理界面"
         check_config "dropbear" "SSH服务"
         echo ""
-        echo "  CUPS 打印（检查多种可能包名）:"
-        check_config "cups" "CUPS核心（可能转为cupsd）"
+        echo "  CUPS 打印:"
+        check_config "cups" "CUPS核心"
         check_config "cupsd" "CUPS守护进程"
         check_config "cups-filters" "打印过滤器"
         echo ""
@@ -179,19 +178,15 @@ jobs:
           echo "║  ❌ 第一道检查失败                   ║"
           echo "║  核心包未被 defconfig 解析           ║"
           echo "║  请查看上方调试输出确认实际包名      ║"
-          echo "║  可能原因：                          ║"
-          echo "║  1. 包名在 .config 里拼写不同        ║"
-          echo "║  2. 对应 feed 源未正确添加           ║"
-          echo "║  3. 依赖不满足导致包被跳过           ║"
           echo "╚══════════════════════════════════════╝"
           # exit 1
+        else
+          echo "╔══════════════════════════════════════╗"
+          echo "║  ✅ 第一道检查通过                   ║"
+          echo "║  解析包总数: $TOTAL                  ║"
+          echo "║  ⏳ 即将开始下载...                   ║"
+          echo "╚══════════════════════════════════════╝"
         fi
-        
-        echo "╔══════════════════════════════════════╗"
-        echo "║  ✅ 第一道检查通过                   ║"
-        echo "║  解析包总数: $TOTAL                  ║"
-        echo "║  ⏳ 即将开始下载...                   ║"
-        echo "╚══════════════════════════════════════╝"
 
     - name: Download packages
       run: cd openwrt && make download -j8 || make download -j1 V=s
