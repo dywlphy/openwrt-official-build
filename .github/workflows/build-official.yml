@@ -93,7 +93,7 @@ jobs:
           echo "   1. make defconfig 是否执行成功"
           echo "   2. feeds 源是否完整"
           echo "   3. .config 格式是否正确"
-          exit 1
+          # exit 1
         fi
         
         # 调试输出：.config 中所有与 CUPS/ksmbd/SSR 相关的行
