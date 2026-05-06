@@ -48,6 +48,23 @@ jobs:
         cd openwrt
         ./diy-part1.sh
         ./diy-part2.sh
+        
+        # 先 defconfig 让基础配置生效
+        make defconfig
+        
+        # 强制勾选 smpackage 里的 CUPS 包（包名跟目录名可能不同）
+        ./scripts/config -e CONFIG_PACKAGE_cups
+        ./scripts/config -e CONFIG_PACKAGE_cups-filters
+        ./scripts/config -e CONFIG_PACKAGE_cups-bjnp
+        ./scripts/config -e CONFIG_PACKAGE_ghostscript
+        ./scripts/config -e CONFIG_PACKAGE_gutenprint
+        ./scripts/config -e CONFIG_PACKAGE_foomatic-db
+        ./scripts/config -e CONFIG_PACKAGE_foomatic-db-engine
+        ./scripts/config -e CONFIG_PACKAGE_avahi-daemon
+        ./scripts/config -e CONFIG_PACKAGE_dbus
+        ./scripts/config -e CONFIG_PACKAGE_luci-app-cupsd
+        
+        # 再次 defconfig 让依赖链自动补齐
         make defconfig
 
     - name: Update feeds
