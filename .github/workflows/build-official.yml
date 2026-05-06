@@ -49,28 +49,12 @@ jobs:
         ./diy-part1.sh
         ./diy-part2.sh
         
-        # 强制勾选 CUPS 完整依赖链（先勾底层库，再勾上层包）
-        ./scripts/config/conf -e CONFIG_PACKAGE_zlib
-        ./scripts/config/conf -e CONFIG_PACKAGE_libpng
-        ./scripts/config/conf -e CONFIG_PACKAGE_libjpeg-turbo
-        ./scripts/config/conf -e CONFIG_PACKAGE_libusb-1.0
-        ./scripts/config/conf -e CONFIG_PACKAGE_libpthread
-        ./scripts/config/conf -e CONFIG_PACKAGE_cups
-        ./scripts/config/conf -e CONFIG_PACKAGE_cups-filters
-        ./scripts/config/conf -e CONFIG_PACKAGE_cups-bjnp
-        ./scripts/config/conf -e CONFIG_PACKAGE_ghostscript
-        ./scripts/config/conf -e CONFIG_PACKAGE_gutenprint
-        ./scripts/config/conf -e CONFIG_PACKAGE_foomatic-db
-        ./scripts/config/conf -e CONFIG_PACKAGE_foomatic-db-engine
-        ./scripts/config/conf -e CONFIG_PACKAGE_avahi-daemon
-        ./scripts/config/conf -e CONFIG_PACKAGE_dbus
-        ./scripts/config/conf -e CONFIG_PACKAGE_luci-app-cupsd
-        ./scripts/config/conf -e CONFIG_PACKAGE_ksmbd-server
-        ./scripts/config/conf -e CONFIG_PACKAGE_luci-app-ksmbd
-        ./scripts/config/conf -e CONFIG_PACKAGE_luci-app-ssr-plus
-        ./scripts/config/conf -e CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Xray
+        # 调试：看看 scripts/config 目录下有什么
+        echo "========== scripts/config/ 目录内容 =========="
+        ls -la scripts/config/
+        echo "=============================================="
         
-        # defconfig 自动补齐所有剩余依赖
+        # 暂不强制勾选，直接 defconfig
         make defconfig
 
     - name: Update feeds
