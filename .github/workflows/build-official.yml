@@ -63,17 +63,22 @@ jobs:
     - name: Install feeds
       run: cd openwrt && ./scripts/feeds install -a
 
-    - name: Diagnose missing packages
+    - name: Diagnose CUPS packages Kconfig symbols
       run: |
         cd openwrt
-        echo "=== 查找 CUPS 扩展包 ==="
+        echo "=== CUPS 扩展包 Kconfig 符号 ==="
         for pkg in cups-bjnp ghostscript gutenprint foomatic-db foomatic-db-engine avahi-daemon; do
-          find feeds -type d -name "$pkg" 2>/dev/null && echo "  目录存在: $pkg" || echo "  ❌ 目录不存在: $pkg"
-        done
-        echo ""
-        echo "=== 查找 Makefile ==="
-        for pkg in cups-bjnp ghostscript gutenprint foomatic-db foomatic-db-engine avahi-daemon; do
-          find feeds -path "*/$pkg/Makefile" 2>/dev/null && echo "  Makefile 存在: $pkg" || echo "  ❌ Makefile 不存在: $pkg"
+          dir=$(find feeds -type d -name "$pkg" | head -1)
+          if [ -n "$dir" ]; then
+            echo "  包: $pkg"
+            echo "  目录: $dir"
+            echo "  Makefile 前15行:"
+            head -15 "$dir/Makefile"
+            echo ""
+          else
+            echo "  ❌ 目录不存在: $pkg"
+          fi
+          echo "---"
         done
 
     - name: Run diy-part2.sh (after feeds ready)
