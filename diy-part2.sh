@@ -113,16 +113,10 @@ ln -sf ../init.d/auto-share-init files/etc/rc.d/S98auto-share-init
 # CUPS 相关包安装
 # ==========================================
 
-# 从官方 packages 源安装 CUPS 扩展包
-# 使用完整路径避免被第三方 feeds 干扰
-echo "从官方 packages 源安装 CUPS 扩展包..."
-./scripts/feeds install feeds/packages/net/cups-bjnp 2>/dev/null
-./scripts/feeds install feeds/packages/utils/ghostscript 2>/dev/null
-./scripts/feeds install feeds/packages/utils/gutenprint 2>/dev/null
-./scripts/feeds install feeds/packages/utils/foomatic-db 2>/dev/null
-./scripts/feeds install feeds/packages/utils/foomatic-db-engine 2>/dev/null
-./scripts/feeds install feeds/packages/libs/avahi 2>/dev/null
-echo "  ✅ 官方扩展包安装完成"
+# 从 immortalwrt 源安装 CUPS 扩展包（完整打印功能）
+echo "从 immortalwrt 源安装 CUPS 扩展包..."
+./scripts/feeds install -f -p immortalwrt cups-bjnp ghostscript gutenprint foomatic-db foomatic-db-engine avahi-daemon 2>/dev/null
+echo "  ✅ immortalwrt 扩展包安装完成"
 
 # 从 smpackage 源安装 CUPS 核心包
 echo "从 smpackage 源安装 CUPS 核心包..."
