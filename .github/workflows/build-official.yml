@@ -10,6 +10,7 @@
 # - 2026-05-07：rootfs 扩大到 512MB（CUPS 全家桶体积大）
 # - 2026-05-07：增加 luci-theme-bootstrap 强制启用（修复 LuCI 界面报错）
 # - 2026-05-07：增加 GRUB_TIMEOUT_MINIMUM=1（修复 GRUB 启动等待 5 秒）
+# - 2026-05-07：第一道检查增加 CUPS 全功能 + 主题验证
 # ============================================================
 
 name: Build Official OpenWrt
@@ -47,7 +48,6 @@ jobs:
       run: |
         git clone https://github.com/openwrt/openwrt -b openwrt-24.10 openwrt
 
-    # 第一步：复制配置文件和脚本，添加 feed 源（注意：diy-part2.sh 不在这里执行）
     - name: Load custom feeds and config
       run: |
         cp config.txt openwrt/.config
@@ -57,20 +57,17 @@ jobs:
         cd openwrt
         ./diy-part1.sh
 
-    # 第二步：更新并安装所有 feed 源
     - name: Update feeds
       run: cd openwrt && ./scripts/feeds update -a
 
     - name: Install feeds
       run: cd openwrt && ./scripts/feeds install -a
 
-    # 第三步：在 feeds 就绪后执行 diy-part2.sh（自启动脚本 + CUPS 包双源安装）
     - name: Run diy-part2.sh (after feeds ready)
       run: |
         cd openwrt
         ./diy-part2.sh
 
-    # 第四步：删除 smpackage 中与官方冲突的包
     - name: Remove conflicting packages
       run: |
         cd openwrt
@@ -83,15 +80,11 @@ jobs:
         rm -rf tmp/
         echo "✅ 冲突包已清除"
 
-    # 第五步：在所有 feed 都就绪后，执行 defconfig
     - name: Run make defconfig
       run: |
         cd openwrt
         make defconfig
 
-    # 第六步：强制启用关键包（CUPS 扩展、打印机驱动等）
-    # 同时禁用 mosdns（Go 1.23 编译环境不兼容 Go 1.25）
-    # 同时设置 GRUB 最小超时 1 秒
     - name: Force enable key packages
       run: |
         cd openwrt
@@ -133,7 +126,11 @@ jobs:
         enable_pkg "curl"
         enable_pkg "luci-theme-bootstrap"
 
-        # 强制禁用 mosdns（Go 1.23 编译环境不兼容 Go 1.25 的 mosdns）
+        # 再次硬写 luci-theme-bootstrap 防止被丢弃
+        echo "CONFIG_PACKAGE_luci-theme-bootstrap=y" >> .config
+        echo "  已硬写: luci-theme-bootstrap"
+
+        # 强制禁用 mosdns（Go 版本不兼容）
         sed -i 's/^CONFIG_PACKAGE_mosdns=y/# CONFIG_PACKAGE_mosdns is not set/' .config
         sed -i 's/^CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_MosDNS=y/# CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_MosDNS is not set/' .config
         echo "  已禁用 mosdns（Go 版本不兼容）"
@@ -148,10 +145,6 @@ jobs:
         echo "重新运行 make defconfig..."
         make defconfig
 
-    # ═══════════════════════════════════════
-    # 第一道检查：依赖链是否能完整解析
-    # 注意：check_config 的 return 必须为 0，否则 bash -e 会中断流程
-    # ═══════════════════════════════════════
     - name: Verify package requirements
       run: |
         cd openwrt
@@ -183,37 +176,58 @@ jobs:
             echo "  ⚠️  $name → 实际包名: $alt ${desc:+($desc)}"
             return 0
           fi
-          echo "  ❌ $name ${desc:+($desc)} - defconfig 后未解析到此包！"
+          echo "  ❌ $name ${desc:+($desc)} - 编译将缺失此功能！"
           FAIL=1
-          return 0  # 必须 return 0，否则 bash -e 会中断
+          return 0
         }
         
-        echo "【核心功能包依赖解析检查】"
+        echo "【核心系统】"
         check_config "uhttpd" "Web管理界面"
         check_config "dropbear" "SSH服务"
+        check_config "luci-theme-bootstrap" "LuCI默认主题"
+        echo ""
+        echo "【CUPS 打印 - 核心】"
         check_config "cups" "CUPS核心"
         check_config "cups-filters" "打印过滤器"
+        check_config "luci-app-cupsd" "CUPS管理界面"
+        echo "【CUPS 打印 - 驱动与扩展】"
+        check_config "cups-bjnp" "Canon网络发现"
+        check_config "ghostscript" "PostScript解释器"
+        check_config "gutenprint" "打印机驱动包"
+        check_config "foomatic-db" "打印机数据库"
+        check_config "foomatic-db-engine" "打印引擎"
+        check_config "avahi-daemon" "mDNS网络发现"
+        check_config "dbus" "D-Bus总线"
+        echo ""
+        echo "【文件共享】"
         check_config "ksmbd-server" "SMB共享服务"
         check_config "luci-app-ksmbd" "ksmbd管理界面"
+        echo ""
+        echo "【科学上网】"
         check_config "luci-app-ssr-plus" "SSR-Plus"
+        echo ""
+        echo "【实用工具】"
         check_config "luci-app-sqm" "SQM QoS"
         check_config "luci-app-upnp" "UPnP"
         check_config "luci-app-ddns" "动态DNS"
         check_config "luci-app-wol" "网络唤醒"
         check_config "wireguard-tools" "WireGuard"
         check_config "luci-proto-wireguard" "WireGuard界面"
+        check_config "vlmcsd" "KMS激活服务"
+        check_config "luci-app-vlmcsd" "KMS管理界面"
         echo ""
         
         if [ "$FAIL" -eq 1 ]; then
           echo "╔══════════════════════════════════════╗"
           echo "║  ❌ 第一道检查失败                   ║"
-          echo "║  核心包未被 defconfig 解析           ║"
+          echo "║  以上包编译后将缺失                 ║"
+          echo "║  已终止编译，请检查源和依赖         ║"
           echo "╚══════════════════════════════════════╝"
           exit 1
         else
           echo "╔══════════════════════════════════════╗"
           echo "║  ✅ 第一道检查通过                   ║"
-          echo "║  解析包总数: $TOTAL                  ║"
+          echo "║  所有核心功能已就绪: $TOTAL 包       ║"
           echo "╚══════════════════════════════════════╝"
         fi
 
