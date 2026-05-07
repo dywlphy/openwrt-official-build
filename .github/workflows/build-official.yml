@@ -98,6 +98,16 @@ jobs:
         rm -rf tmp/
         echo "✅ 冲突包已清除"
 
+    - name: Diagnose CUPS packages location
+      run: |
+        cd openwrt
+        echo "=== 查找所有 cups-bjnp 目录 ==="
+        find . -type d -name "cups-bjnp" 2>/dev/null
+        echo "=== 查找所有 ghostscript 目录 ==="
+        find . -type d -name "ghostscript" 2>/dev/null
+        echo "=== 查找 avahi Makefile ==="
+        find . -path "*/avahi/Makefile" 2>/dev/null
+
     - name: Run make defconfig
       run: |
         cd openwrt
