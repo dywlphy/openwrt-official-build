@@ -1,9 +1,13 @@
 # ============================================================
 # OpenWrt 官方 24.10 纯净版 x86_64
 # 核心：CUPS打印 + SSR-Plus + ksmbd自动共享 + 现代化LuCI
-# 已修正包名：freetype, libusb-1_0, expat, avahi-nodbus-utils
-# 已移除 libdbus（avahi-daemon 自动依赖）
-# 已禁用 mosdns（Go 1.25 版本不兼容）
+# 
+# 修正记录：
+# - 2026-05-07：修正包名 libfreetype→freetype, libusb-1.0→libusb-1_0, libexpat→expat, avahi-utils→avahi-nodbus-utils
+# - 2026-05-07：移除 libdbus（avahi-daemon 自动依赖）
+# - 2026-05-07：禁用 mosdns（Go 版本不兼容）
+# - 2026-05-07：rootfs 扩大到 512MB（CUPS 全家桶体积大）
+# - 2026-05-07：GRUB 超时改为 1 秒，添加最小超时限制
 # ============================================================
 
 CONFIG_TARGET_x86=y
@@ -16,6 +20,9 @@ CONFIG_GRUB_TIMEOUT=1
 CONFIG_PACKAGE_luci=y
 CONFIG_PACKAGE_luci-ssl=y
 CONFIG_PACKAGE_luci-i18n-base-zh-cn=y
+
+# LuCI 默认主题（避免界面报错 "Unable to render any theme header template"）
+CONFIG_PACKAGE_luci-theme-bootstrap=y
 
 # 基础系统
 CONFIG_PACKAGE_block-mount=y
@@ -88,7 +95,7 @@ CONFIG_PACKAGE_luci-app-ksmbd=y
 CONFIG_PACKAGE_ksmbd-server=y
 CONFIG_PACKAGE_kmod-fs-ksmbd=y
 
-# SSR-Plus（由 helloworld 源提供）
+# SSR-Plus（由 small 源提供）
 # 注意：已禁用 MosDNS（Go 版本不兼容）
 CONFIG_PACKAGE_luci-app-ssr-plus=y
 CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Xray=y
