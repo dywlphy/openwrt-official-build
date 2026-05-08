@@ -42,25 +42,11 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
           echo "【修复 printing 源 Makefile 兼容性问题】"
-          # ghostscript: 修复 PKG_SOURCE_URL 中的 $(PKG-SOURCE) 拼写错误
           sed -i 's/\$(PKG-SOURCE)/\$(PKG_SOURCE)/g' feeds/printing/ghostscript/Makefile 2>/dev/null || true
-          # qpdf: 将 libpcre 依赖改为 libpcre2（OpenWrt 24.10 已移除 libpcre）
           sed -i 's/+libpcre/+libpcre2/g' feeds/printing/qpdf/Makefile 2>/dev/null || true
-          # openprinting-cups-filters: 修复 preinst/postinst 缺少包名前缀
           sed -i 's/^define Package\/preinst$/define Package\/openprinting-cups-filters\/preinst/' feeds/printing/openprinting-cups-filters/Makefile 2>/dev/null || true
           sed -i 's/^define Package\/postinst$/define Package\/openprinting-cups-filters\/postinst/' feeds/printing/openprinting-cups-filters/Makefile 2>/dev/null || true
           echo "  Makefile 修复完成"
-          
-          echo "【删除与 OpenWrt 24.10 不兼容的包】"
-          # 删除会导致 config-package.in 语法错误的包
-          rm -rf feeds/printing/openprinting-cups-filters 2>/dev/null || true
-          rm -rf feeds/printing/qpdf 2>/dev/null || true
-          rm -rf feeds/printing/poppler 2>/dev/null || true
-          # 清理 index 中对这些包的引用
-          sed -i '/openprinting-cups-filters/d' feeds/printing.index 2>/dev/null || true
-          sed -i '/^Package: qpdf$/d' feeds/printing.index 2>/dev/null || true
-          sed -i '/^Package: poppler$/d' feeds/printing.index 2>/dev/null || true
-          echo "  已删除不兼容的包"
 
       - name: Load custom configuration
         run: |
@@ -73,6 +59,11 @@ jobs:
       - name: Generate default configuration
         run: |
           cd openwrt
+          echo "【删除与 OpenWrt 24.10 不兼容的包】"
+          rm -rf feeds/printing/openprinting-cups-filters 2>/dev/null || true
+          rm -rf feeds/printing/qpdf 2>/dev/null || true
+          rm -rf feeds/printing/poppler 2>/dev/null || true
+          rm -f feeds/printing.index
           echo "【生成 defconfig】"
           make defconfig
 
@@ -80,14 +71,10 @@ jobs:
         run: |
           cd openwrt
 
-          # 定义强制启用函数
           enable_pkg() {
               grep -q "CONFIG_PACKAGE_$1=y" .config || echo "CONFIG_PACKAGE_$1=y" >> .config
           }
 
-          # =============================================
-          # Step 1: 强制启用 LuCI 核心依赖
-          # =============================================
           echo "【强制启用 LuCI 核心依赖】"
           enable_pkg "luci-base"
           enable_pkg "luci-mod-admin-full"
@@ -111,7 +98,6 @@ jobs:
           enable_pkg "ucode-mod-uci"
           enable_pkg "luci-theme-bootstrap"
 
-          # LuCI 中文翻译包
           enable_pkg "luci-i18n-base-zh-cn"
           enable_pkg "luci-i18n-opkg-zh-cn"
           enable_pkg "luci-i18n-firewall-zh-cn"
@@ -126,9 +112,6 @@ jobs:
           enable_pkg "luci-i18n-ssr-plus-zh-cn"
           enable_pkg "luci-i18n-cupsd-zh-cn"
 
-          # =============================================
-          # Step 2: 强制启用 CUPS 打印包
-          # =============================================
           echo "【强制启用 CUPS 打印系统】"
           enable_pkg "cups"
           enable_pkg "cups-bjnp"
@@ -138,23 +121,14 @@ jobs:
           enable_pkg "avahi-dbus-daemon"
           enable_pkg "dbus"
 
-          # =============================================
-          # Step 3: 强制启用文件共享
-          # =============================================
           echo "【强制启用文件共享】"
           enable_pkg "ksmbd"
           enable_pkg "ksmbd-utils"
 
-          # =============================================
-          # Step 4: 强制启用 SSR-Plus
-          # =============================================
           echo "【强制启用 SSR-Plus】"
           enable_pkg "luci-app-ssr-plus"
           enable_pkg "xray-core"
 
-          # =============================================
-          # Step 5: 强制启用工具包
-          # =============================================
           echo "【强制启用工具包】"
           enable_pkg "curl"
           enable_pkg "bash"
@@ -164,9 +138,6 @@ jobs:
           enable_pkg "cfdisk"
           enable_pkg "e2fsprogs"
 
-          # =============================================
-          # Step 6: 强制启用网络工具
-          # =============================================
           echo "【强制启用网络工具】"
           enable_pkg "luci-app-wireguard"
           enable_pkg "wireguard-tools"
@@ -181,22 +152,13 @@ jobs:
           enable_pkg "luci-app-ttyd"
           enable_pkg "luci-app-attendedsysupgrade"
 
-          # =============================================
-          # Step 7: GRUB 超时修正
-          # =============================================
           echo "【修正 GRUB 超时】"
           sed -i 's/CONFIG_GRUB_TIMEOUT=.*/CONFIG_GRUB_TIMEOUT=0/' .config
           sed -i 's/CONFIG_GRUB_TIMEOUT_MINIMUM=.*/CONFIG_GRUB_TIMEOUT_MINIMUM=0/' .config
 
-          # =============================================
-          # Step 8: 禁用 mosdns（Go 版本不兼容）
-          # =============================================
           echo "【禁用 mosdns（Go 版本不兼容）】"
           sed -i 's/CONFIG_PACKAGE_mosdns=y/# CONFIG_PACKAGE_mosdns is not set/' .config
 
-          # =============================================
-          # Step 9: 最终验证
-          # =============================================
           echo ""
           echo "=========================================="
           echo "【最终配置验证】"
@@ -204,7 +166,6 @@ jobs:
 
           ERROR=0
 
-          # LuCI 核心
           echo ""
           echo "--- LuCI 核心检查 ---"
           for pkg in luci-base luci-mod-admin-full luci-mod-network luci-mod-status luci-mod-system \
@@ -224,7 +185,6 @@ jobs:
               fi
           done
 
-          # CUPS 打印
           echo ""
           echo "--- CUPS 打印系统检查 ---"
           for pkg in cups cups-bjnp ghostscript splix luci-app-cupsd avahi-dbus-daemon dbus; do
@@ -236,7 +196,6 @@ jobs:
               fi
           done
 
-          # 文件共享
           echo ""
           echo "--- 文件共享检查 ---"
           for pkg in ksmbd ksmbd-utils; do
@@ -248,7 +207,6 @@ jobs:
               fi
           done
 
-          # SSR-Plus
           echo ""
           echo "--- SSR-Plus 检查 ---"
           for pkg in luci-app-ssr-plus xray-core; do
@@ -260,7 +218,6 @@ jobs:
               fi
           done
 
-          # 网络
           echo ""
           echo "--- 网络工具检查 ---"
           for pkg in luci-app-wireguard wireguard-tools miniupnpd luci-app-upnp \
@@ -274,7 +231,6 @@ jobs:
               fi
           done
 
-          # 工具
           echo ""
           echo "--- 工具包检查 ---"
           for pkg in curl bash vlmcsd htop iperf3 cfdisk e2fsprogs; do
@@ -286,7 +242,6 @@ jobs:
               fi
           done
 
-          # GRUB
           echo ""
           echo "--- GRUB 超时检查 ---"
           if grep -q "CONFIG_GRUB_TIMEOUT=0" .config; then
@@ -296,7 +251,6 @@ jobs:
               ERROR=1
           fi
 
-          # rootfs
           echo ""
           echo "--- RootFS 大小检查 ---"
           if grep -q "CONFIG_TARGET_ROOTFS_PARTSIZE=512" .config; then
@@ -317,7 +271,6 @@ jobs:
               echo "=========================================="
           fi
 
-          # 重新生成 defconfig 以确保配置一致
           echo "【重新生成 defconfig】"
           make defconfig
 
