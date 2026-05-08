@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==========================================
-# diy-part2.sh - 自启动脚本 + 自动共享 + CUPS 包安装 + GRUB修复
+# diy-part2.sh - 自启动脚本 + 自动共享 + CUPS + GRUB修复
 # ==========================================
 
 echo "===== 修复 GRUB 超时 ====="
@@ -111,19 +111,13 @@ EOF
 chmod +x files/etc/init.d/auto-share-init
 ln -sf ../init.d/auto-share-init files/etc/rc.d/S98auto-share-init
 
-echo "===== 安装 CUPS 相关包 ====="
-
-echo "从 openwrt-cups 源安装打印驱动..."
-./scripts/feeds install -f -p cups ghostscript 2>/dev/null && echo "  ✅ ghostscript" || echo "  ⚠️ ghostscript"
-./scripts/feeds install -f -p cups gutenprint 2>/dev/null && echo "  ✅ gutenprint" || echo "  ⚠️ gutenprint"
-./scripts/feeds install -f -p cups foomatic-db 2>/dev/null && echo "  ✅ foomatic-db" || echo "  ⚠️ foomatic-db"
-./scripts/feeds install -f -p cups foomatic-db-engine 2>/dev/null && echo "  ✅ foomatic-db-engine" || echo "  ⚠️ foomatic-db-engine"
-
-echo "从 immortalwrt 源安装扩展包..."
-./scripts/feeds install -f -p immortalwrt cups-bjnp 2>/dev/null && echo "  ✅ cups-bjnp" || echo "  ⚠️ cups-bjnp"
+echo "===== 安装额外包 ====="
 
 echo "从 smpackage 源安装 CUPS 核心包..."
 ./scripts/feeds install -f -p smpackage cups cups-filters dbus luci-app-cupsd 2>/dev/null && echo "  ✅ CUPS核心" || echo "  ⚠️ CUPS核心"
+
+echo "从 immortalwrt 源安装扩展包..."
+./scripts/feeds install -f -p immortalwrt cups-bjnp 2>/dev/null && echo "  ✅ cups-bjnp" || echo "  ⚠️ cups-bjnp"
 
 echo "从官方源安装 avahi..."
 ./scripts/feeds install avahi-dbus-daemon 2>/dev/null && echo "  ✅ avahi-dbus-daemon" || {
