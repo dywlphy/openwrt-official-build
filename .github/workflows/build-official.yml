@@ -73,39 +73,43 @@ jobs:
         
         FAIL=0
         
-        check_i18n_exists() {
+        check_i18n_makefile() {
           local pkg="$1"
           local desc="${2:-}"
-          # 在 feeds 索引中搜索包名
-          if grep -rh "^Package: $pkg$" feeds/*/Packages* 2>/dev/null | grep -q .; then
-            echo "  ✅ $pkg ${desc:+($desc)} - 存在于 feeds"
-            return 0
-          else
-            echo "  ❌ $pkg ${desc:+($desc)} - 不存在于 feeds"
+          local found=0
+          for dir in package/feeds/*/; do
+            if [ -f "${dir}${pkg}/Makefile" ] 2>/dev/null; then
+              echo "  ✅ $pkg ${desc:+($desc)} - 存在于 $(basename $dir)"
+              found=1
+              return 0
+            fi
+          done
+          if [ "$found" -eq 0 ]; then
+            echo "  ❌ $pkg ${desc:+($desc)} - Makefile 不存在"
             FAIL=1
-            return 1
           fi
+          return 1
         }
         
         echo "【核心中文语言包检查】"
-        check_i18n_exists "luci-i18n-base-zh-cn" "基础中文"
-        check_i18n_exists "luci-i18n-firewall-zh-cn" "防火墙中文"
-        check_i18n_exists "luci-i18n-opkg-zh-cn" "软件包中文"
+        check_i18n_makefile "luci-i18n-base" "基础中文"
+        check_i18n_makefile "luci-i18n-firewall" "防火墙中文"
+        check_i18n_makefile "luci-i18n-opkg" "软件包中文"
         
         echo ""
         
         if [ "$FAIL" -eq 1 ]; then
           echo "╔══════════════════════════════════════╗"
           echo "║  ❌ 中文包检查失败                 ║"
-          echo "║  feeds 中缺少中文语言包            ║"
-          echo "║  请检查 feeds 源配置               ║"
+          echo "║  feeds install 可能失败            ║"
+          echo "║  请检查 DIY 脚本和 feeds 配置      ║"
           echo "║  已终止编译                        ║"
           echo "╚══════════════════════════════════════╝"
           exit 1
         else
           echo "╔══════════════════════════════════════╗"
           echo "║  ✅ 中文包检查通过                 ║"
-          echo "║  feeds 中存在中文语言包            ║"
+          echo "║  feeds install 成功                ║"
           echo "╚══════════════════════════════════════╝"
         fi
     - name: Run make defconfig
