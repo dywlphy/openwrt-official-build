@@ -66,7 +66,7 @@ jobs:
       run: |
         cd openwrt
         make defconfig
-    - name: Print feeds.conf
+    - name: Print feeds conf
       run: |
         cd openwrt
         echo ""
@@ -75,7 +75,7 @@ jobs:
         echo "╚══════════════════════════════════════╝"
         cat feeds.conf 2>/dev/null || echo "feeds.conf 不存在"
         echo ""
-    - name: Print Chinese packages in .config
+    - name: Print Chinese packages in config
       run: |
         cd openwrt
         echo ""
