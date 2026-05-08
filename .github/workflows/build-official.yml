@@ -7,7 +7,7 @@ name: Build Official OpenWrt
 on:
   workflow_dispatch:
 
-env:
+jobs:
   UPLOAD_BIN_DIR: false
   UPLOAD_FIRMWARE: true
   UPLOAD_RELEASE: true
