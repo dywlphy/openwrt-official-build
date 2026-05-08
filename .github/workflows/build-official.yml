@@ -146,7 +146,7 @@ jobs:
         sed -i 's/CONFIG_GRUB_TIMEOUT=.*/CONFIG_GRUB_TIMEOUT=0/' .config
         echo "CONFIG_GRUB_TIMEOUT=0" >> .config
         echo "==========================="
-        make defconfig
+        # make defconfig
     - name: Check Chinese packages in .config
       run: |
         cd openwrt
