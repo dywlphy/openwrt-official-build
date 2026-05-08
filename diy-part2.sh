@@ -24,10 +24,11 @@ echo "GRUB 超时已设置为 0"
 echo ""
 echo "【安装 CUPS 打印相关包】"
 
-# printing 源的包
-for pkg in cups cups-bjnp ghostscript openprinting-cups-filters \
+# printing 源的包（跳过 qpdf/poppler/openprinting-cups-filters，与 OpenWrt 24.10 不兼容）
+# qpdf 依赖 libpcre（24.10 已移除），poppler 版本过旧，openprinting-cups-filters 依赖 qpdf
+for pkg in cups cups-bjnp ghostscript splix \
            libcups libcupsimage cups-bsd cups-client cups-ppdc \
-           lcms2 libijs libjbigkit poppler qpdf ghostscript-fonts-std; do
+           lcms2 libijs libjbigkit ghostscript-fonts-std; do
     ./scripts/feeds install "$pkg" 2>/dev/null && echo "  OK $pkg" || echo "  WARN $pkg install failed"
 done
 
