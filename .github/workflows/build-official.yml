@@ -3,11 +3,8 @@
 # 核心：CUPS + SSR-Plus + ksmbd + 中文界面
 # 
 # 修复记录：
-# - 2026-05-07：添加完整 LuCI 核心依赖（修复界面报错）
-# - 2026-05-07：修复 GRUB 超时配置
-# - 2026-05-07：添加 openwrt-cups 源（ghostscript, gutenprint, foomatic）
 # - 2026-05-08：通过 feeds install 安装中文包（解决界面无中文问题）
-# - 2026-05-08：中文包检查改为可选（避免误报）
+# - 2026-05-08：添加中文包存在性检查，缺失则终止编译
 # ============================================================
 name: Build Official OpenWrt
 on:
@@ -64,6 +61,53 @@ jobs:
         done
         rm -rf tmp/
         echo "✅ 冲突包已清除"
+    - name: Check Chinese language packages existence
+      run: |
+        cd openwrt
+        
+        echo ""
+        echo "╔══════════════════════════════════════╗"
+        echo "║  🔍 检查中文语言包存在性            ║"
+        echo "╚══════════════════════════════════════╝"
+        echo ""
+        
+        FAIL=0
+        
+        check_i18n_exists() {
+          local pkg="$1"
+          local desc="${2:-}"
+          # 在 feeds 索引中搜索包名
+          if grep -rh "^Package: $pkg$" feeds/*/Packages* 2>/dev/null | grep -q .; then
+            echo "  ✅ $pkg ${desc:+($desc)} - 存在于 feeds"
+            return 0
+          else
+            echo "  ❌ $pkg ${desc:+($desc)} - 不存在于 feeds"
+            FAIL=1
+            return 1
+          fi
+        }
+        
+        echo "【核心中文语言包检查】"
+        check_i18n_exists "luci-i18n-base-zh-cn" "基础中文"
+        check_i18n_exists "luci-i18n-firewall-zh-cn" "防火墙中文"
+        check_i18n_exists "luci-i18n-opkg-zh-cn" "软件包中文"
+        
+        echo ""
+        
+        if [ "$FAIL" -eq 1 ]; then
+          echo "╔══════════════════════════════════════╗"
+          echo "║  ❌ 中文包检查失败                 ║"
+          echo "║  feeds 中缺少中文语言包            ║"
+          echo "║  请检查 feeds 源配置               ║"
+          echo "║  已终止编译                        ║"
+          echo "╚══════════════════════════════════════╝"
+          exit 1
+        else
+          echo "╔══════════════════════════════════════╗"
+          echo "║  ✅ 中文包检查通过                 ║"
+          echo "║  feeds 中存在中文语言包            ║"
+          echo "╚══════════════════════════════════════╝"
+        fi
     - name: Run make defconfig
       run: |
         cd openwrt
@@ -215,7 +259,7 @@ jobs:
         check_config "ucode-mod-uci" "ucode uci模块"
         check_config "luci-theme-bootstrap" "默认主题"
         echo ""
-        echo "【中文语言包（可选）】"
+        echo "【中文语言包（已在 feeds 中确认存在）】"
         check_config "luci-i18n-base-zh-cn" "基础中文" "optional"
         check_config "luci-i18n-firewall-zh-cn" "防火墙中文" "optional"
         check_config "luci-i18n-opkg-zh-cn" "软件包中文" "optional"
