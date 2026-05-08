@@ -39,6 +39,15 @@ jobs:
           echo "【更新 feeds】"
           ./scripts/feeds update -a
           ./scripts/feeds install -a
+          echo "【修复 printing 源 Makefile 兼容性问题】"
+          # ghostscript: 修复 PKG_SOURCE_URL 中的 $(PKG-SOURCE) 拼写错误
+          sed -i 's/\$(PKG-SOURCE)/\$(PKG_SOURCE)/g' feeds/printing/ghostscript/Makefile 2>/dev/null || true
+          # qpdf: 将 libpcre 依赖改为 libpcre2（OpenWrt 24.10 已移除 libpcre）
+          sed -i 's/+libpcre/+libpcre2/g' feeds/printing/qpdf/Makefile 2>/dev/null || true
+          # openprinting-cups-filters: 修复 preinst/postinst 缺少包名前缀
+          sed -i 's/^define Package\/preinst$/define Package\/openprinting-cups-filters\/preinst/' feeds/printing/openprinting-cups-filters/Makefile 2>/dev/null || true
+          sed -i 's/^define Package\/postinst$/define Package\/openprinting-cups-filters\/postinst/' feeds/printing/openprinting-cups-filters/Makefile 2>/dev/null || true
+          echo "  Makefile 修复完成"
 
       - name: Load custom configuration
         run: |
@@ -111,7 +120,7 @@ jobs:
           enable_pkg "cups"
           enable_pkg "cups-bjnp"
           enable_pkg "ghostscript"
-          enable_pkg "openprinting-cups-filters"
+          enable_pkg "splix"
           enable_pkg "luci-app-cupsd"
           enable_pkg "avahi-dbus-daemon"
           enable_pkg "dbus"
@@ -205,7 +214,7 @@ jobs:
           # CUPS 打印
           echo ""
           echo "--- CUPS 打印系统检查 ---"
-          for pkg in cups cups-bjnp ghostscript openprinting-cups-filters luci-app-cupsd avahi-dbus-daemon dbus; do
+          for pkg in cups cups-bjnp ghostscript splix luci-app-cupsd avahi-dbus-daemon dbus; do
               if grep -q "CONFIG_PACKAGE_${pkg}=y" .config; then
                   echo "  OK $pkg"
               else
