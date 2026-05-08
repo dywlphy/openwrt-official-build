@@ -1,0 +1,15 @@
+name: Build Official OpenWrt
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@main
+    - name: Build
+      run: echo "Test"
