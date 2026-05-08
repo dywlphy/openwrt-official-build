@@ -42,7 +42,7 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
           echo "【修复 printing 源 Makefile 兼容性问题】"
-          # ghostscript: 修复 PKG_SOURCE_URL 中的 $(PKG-SOURCE) 拼写错误
+          # ghostscript: 修复 PKG_SOURCE_URL 中的 $(PKG-SOURCE) 拼写错误x
           sed -i 's/\$(PKG-SOURCE)/\$(PKG_SOURCE)/g' feeds/printing/ghostscript/Makefile 2>/dev/null || true
           # qpdf: 将 libpcre 依赖改为 libpcre2（OpenWrt 24.10 已移除 libpcre）
           sed -i 's/+libpcre/+libpcre2/g' feeds/printing/qpdf/Makefile 2>/dev/null || true
