@@ -1,24 +1,19 @@
 #!/bin/bash
 # ==========================================
-# diy-part1.sh - 配置 Feed 源（基础版）
+# feeds 配置：官方默认源 + kenzok8 + helloworld + immortalwrt + openwrt-cups
+# 注意：源顺序决定优先级，官方源应保持最高优先级
 # ==========================================
 
-cd openwrt
+echo "===== 配置 feeds 源 ====="
 
-echo "===== 配置 feeds ====="
+cp feeds.conf.default feeds.conf.default.bak
 
-# 追加第三方源（保留官方默认的 packages 和 luci）
 echo "src-git kenzo https://github.com/kenzok8/openwrt-packages.git" >> feeds.conf.default
 echo "src-git small https://github.com/kenzok8/small.git" >> feeds.conf.default
 echo "src-git smpackage https://github.com/kenzok8/small-package" >> feeds.conf.default
 echo "src-git helloworld https://github.com/fw876/helloworld" >> feeds.conf.default
 echo "src-git immortalwrt https://github.com/immortalwrt/packages.git;openwrt-24.10" >> feeds.conf.default
+echo "src-git cups https://github.com/op4packages/openwrt-cups.git" >> feeds.conf.default
 
-echo "  已追加第三方源到 feeds.conf.default"
-
-# 更新feeds
-echo "===== 更新 feeds ====="
-./scripts/feeds update -a
-./scripts/feeds install -a
-
-echo "===== diy-part1.sh 执行完成 ====="
+echo "✅ feeds 源配置完成"
+echo "已添加：kenzo, small, smpackage, helloworld, immortalwrt, cups"
