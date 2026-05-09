@@ -327,6 +327,15 @@ jobs:
           echo "║  核心功能就绪: $TOTAL 包        ║"
           echo "╚══════════════════════════════════════╝"
         fi
+    - name: Debug - Check missing lib dependencies
+      run: |
+        cd openwrt
+        echo "=== 检查主包是否有对应的 lib 包 ==="
+        for pkg in curl dbus cups iwinfo expat; do
+          echo "--- $pkg ---"
+          grep "CONFIG_PACKAGE_${pkg}=y" .config || echo "  $pkg 未启用"
+          grep "CONFIG_PACKAGE_lib${pkg}=y" .config || echo "  ⚠️ lib${pkg} 未启用"
+        done
     - name: Download packages
       run: cd openwrt && make download -j8 || make download -j1 V=s
     - name: Compile OpenWRT firmware
