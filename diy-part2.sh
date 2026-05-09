@@ -131,12 +131,33 @@ echo "===== 安装中文语言包 ====="
 ./scripts/feeds install luci-i18n-attendedsysupgrade-zh-cn && echo "  ✅ luci-i18n-attendedsysupgrade-zh-cn 安装成功" || echo "  ⚠️ luci-i18n-attendedsysupgrade-zh-cn 安装失败"
 ./scripts/feeds install luci-i18n-wireguard-zh-cn && echo "  ✅ luci-i18n-wireguard-zh-cn 安装成功" || echo "  ⚠️ luci-i18n-wireguard-zh-cn 安装失败"
 ./scripts/feeds install luci-i18n-ttyd-zh-cn && echo "  ✅ luci-i18n-ttyd-zh-cn 安装成功" || echo "  ⚠️ luci-i18n-ttyd-zh-cn 安装失败"
+
 # ==========================================
 # CUPS 相关包安装
 # ==========================================
 echo "===== 安装 CUPS 相关包 ====="
 echo "从 openwrt-cups 源安装打印驱动包..."
+
+# +++ 修改点 1：修复 ghostscript 编译参数（在安装前修复）+++
+# 查找并修复 ghostscript Makefile
+GS_MAKEFILE=$(find feeds -name "ghostscript" -type d 2>/dev/null | head -1)/Makefile
+if [ -f "$GS_MAKEFILE" ]; then
+    sed -i 's/--enable-cups/--with-install-cups/g' "$GS_MAKEFILE"
+    echo "  🔧 ghostscript Makefile 已修复"
+fi
+
 ./scripts/feeds install -f -p cups ghostscript 2>/dev/null && echo "  ✅ ghostscript 安装成功" || echo "  ⚠️ ghostscript 安装失败"
+
+# +++ 修改点 2：如果 ghostscript 安装失败，尝试二次修复 +++
+if ! grep -q "CONFIG_PACKAGE_ghostscript=y" .config 2>/dev/null; then
+    echo "  🔧 尝试二次修复 ghostscript..."
+    GS_MAKEFILE=$(find feeds -name "ghostscript" -type d 2>/dev/null | head -1)/Makefile
+    if [ -f "$GS_MAKEFILE" ]; then
+        sed -i 's/--enable-cups/--with-install-cups/g' "$GS_MAKEFILE"
+        ./scripts/feeds install -f -p cups ghostscript 2>/dev/null
+    fi
+fi
+
 ./scripts/feeds install -f -p cups gutenprint 2>/dev/null && echo "  ✅ gutenprint 安装成功" || echo "  ⚠️ gutenprint 安装失败"
 ./scripts/feeds install -f -p cups foomatic-db 2>/dev/null && echo "  ✅ foomatic-db 安装成功" || echo "  ⚠️ foomatic-db 安装失败"
 ./scripts/feeds install -f -p cups foomatic-db-engine 2>/dev/null && echo "  ✅ foomatic-db-engine 安装成功" || echo "  ⚠️ foomatic-db-engine 安装失败"
@@ -148,4 +169,15 @@ echo "从官方源安装 avahi..."
 ./scripts/feeds install avahi-dbus-daemon 2>/dev/null && echo "  ✅ avahi-dbus-daemon 安装成功" || {
     ./scripts/feeds install avahi-nodbus-daemon 2>/dev/null && echo "  ✅ avahi-nodbus-daemon 安装成功" || echo "  ⚠️ avahi 安装失败"
 }
+
+# +++ 新增：打印机驱动安装（保持原代码后添加）+++
+echo "===== 安装打印机驱动 ====="
+./scripts/feeds install -f -p cups brlaser 2>/dev/null && echo "  ✅ brlaser 安装成功" || echo "  ⚠️ brlaser 安装失败"
+./scripts/feeds install -f -p cups hplip-ppds 2>/dev/null && echo "  ✅ hplip-ppds 安装成功" || echo "  ⚠️ hplip-ppds 安装失败"
+# +++ 追加：强制启用打印机驱动配置 +++
+echo "===== 强制启用驱动配置 ====="
+echo "CONFIG_PACKAGE_brlaser=y" >> .config
+echo "CONFIG_PACKAGE_hplip-ppds=y" >> .config
+echo "CONFIG_PACKAGE_ghostscript=y" >> .config
+
 echo "✅ diy-part2.sh 执行完成"
