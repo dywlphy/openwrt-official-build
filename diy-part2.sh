@@ -34,15 +34,17 @@ if [ -f "$CURL_MK" ]; then
     echo "  ✅ curl Makefile 已修复"
 fi
 
-## 修复 cups-bjnp
-#CUPSBJNP_MK="feeds/immortalwrt/utils/cups-bjnp/Makefile"
-#if [ -f "$CUPSBJNP_MK" ]; then
-    ## 修复 backend 目录路径
-    #sed -i 's|--with-cupsbackenddir=$(STAGING_DIR)/usr/include/cups|--with-cupsbackenddir=$(STAGING_DIR)/usr/lib/cups/backend|' "$CUPSBJNP_MK"
-    ## 在 CONFIGURE_VARS 中添加 CUPS_CONFIG 环境变量
-    #sed -i '/^CONFIGURE_VARS +=/ s|$| CUPS_CONFIG=$(STAGING_DIR)/host/bin/cups-config|' "$CUPSBJNP_MK"
-    #echo "  ✅ cups-bjnp Makefile 已修复"
-#fi
+# 修复 cups-bjnp
+CUPSBJNP_MK="feeds/immortalwrt/utils/cups-bjnp/Makefile"
+if [ -f "$CUPSBJNP_MK" ]; then
+    # 1. 修复 backend 目录路径
+    sed -i 's|--with-cupsbackenddir=$(STAGING_DIR)/usr/include/cups|--with-cupsbackenddir=$(STAGING_DIR)/usr/lib/cups/backend|' "$CUPSBJNP_MK"
+    # 2. 添加编译顺序依赖，强制在 cups 之后编译
+    sed -i '/^DEPENDS:=/ s|$| cups|' "$CUPSBJNP_MK"
+    echo "  ✅ cups-bjnp Makefile 已修复"
+else
+    echo "  ⚠️ 未找到 cups-bjnp Makefile"
+fi
 
 # 修复 ghostscript
 GS_MAKEFILE=$(find feeds -name "ghostscript" -type d 2>/dev/null | head -1)/Makefile
