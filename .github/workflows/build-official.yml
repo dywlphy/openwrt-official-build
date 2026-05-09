@@ -44,6 +44,23 @@ jobs:
         chmod +x openwrt/diy-part1.sh openwrt/diy-part2.sh 2>/dev/null || true
         cd openwrt
         ./diy-part1.sh
+    # ← 在这里插入缓存 ↓↓↓
+    - name: Cache OpenWrt source packages (dl)
+      uses: actions/cache@v4
+      with:
+        path: openwrt/dl
+        key: openwrt-dl-${{ hashFiles('diy-part1.sh') }}
+        restore-keys: openwrt-dl-
+
+    - name: Cache OpenWrt build artifacts
+      uses: actions/cache@v4
+      with:
+        path: |
+          openwrt/staging_dir
+          openwrt/build_dir
+        key: openwrt-build-${{ hashFiles('config.txt') }}
+        restore-keys: openwrt-build-
+    # ← 缓存结束 ↑↑↑
     - name: Update feeds
       run: cd openwrt && ./scripts/feeds update -a
     - name: Install feeds
