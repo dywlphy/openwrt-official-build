@@ -191,6 +191,15 @@ echo "从 immortalwrt 源安装扩展包..."
 ./scripts/feeds install -f -p immortalwrt cups-bjnp 2>/dev/null && echo "  ✅ cups-bjnp 安装成功" || echo "  ⚠️ cups-bjnp 安装失败"
 echo "从 smpackage 源安装 CUPS 核心包..."
 ./scripts/feeds install -f -p smpackage cups cups-filters dbus luci-app-cupsd 2>/dev/null && echo "  ✅ CUPS 核心包安装成功" || echo "  ⚠️ CUPS 核心包安装失败"
+
+# 修复 cups Makefile，添加缺失的依赖声明
+CUPS_MK=$(find feeds -name "cups" -type d | head -1)/Makefile
+if [ -f "$CUPS_MK" ]; then
+    # 在 DEPENDS 中添加缺失的库
+    sed -i 's/DEPENDS:=/DEPENDS:=+libusb-1.0 +libstdcpp /' "$CUPS_MK"
+    echo "  ✅ cups Makefile 已修复"
+fi
+
 echo "从官方源安装 avahi..."
 ./scripts/feeds install avahi-dbus-daemon 2>/dev/null && echo "  ✅ avahi-dbus-daemon 安装成功" || {
     ./scripts/feeds install avahi-nodbus-daemon 2>/dev/null && echo "  ✅ avahi-nodbus-daemon 安装成功" || echo "  ⚠️ avahi 安装失败"
