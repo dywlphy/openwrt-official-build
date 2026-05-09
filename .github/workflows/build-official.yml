@@ -172,6 +172,7 @@ jobs:
         enable_pkg "vlmcsd"
         enable_pkg "luci-app-vlmcsd"
         enable_pkg "curl"
+        enable_pkg "libcurl"
         
         # 删除这4行
         # enable_pkg "ghostscript"
