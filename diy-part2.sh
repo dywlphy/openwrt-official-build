@@ -29,6 +29,32 @@ fi
 
 # ----- 创建自启动目录 -----
 mkdir -p files/etc/init.d files/etc/rc.d
+
+# ----- 创建 AirPrint 服务文件（avahi）-----
+echo "===== 创建 AirPrint 服务文件 ====="
+mkdir -p files/etc/avahi/services
+cat > files/etc/avahi/services/cups.service << 'EOF'
+<?xml version="1.0" standalone='no'?>
+<!DOCTYPE service-group SYSTEM "avahi-service.dtd">
+<service-group>
+  <name replace-wildcards="yes">%h - CUPS</name>
+  <service>
+    <type>_ipp._tcp</type>
+    <subtype>_universal._sub._ipp._tcp</subtype>
+    <port>631</port>
+    <txt-record>txtver=1</txt-record>
+    <txt-record>qtotal=1</txt-record>
+    <txt-record>Transparent=T</txt-record>
+    <txt-record>URF=WFD</txt-record>
+    <txt-record>Color=T</txt-record>
+    <txt-record>Duplex=T</txt-record>
+    <txt-record>Copies=T</txt-record>
+  </service>
+</service-group>
+EOF
+chmod 644 files/etc/avahi/services/cups.service
+echo "  ✅ AirPrint 服务文件已创建"
+
 # ----- 服务自启动脚本 -----
 cat > files/etc/init.d/custom-autostart << 'EOF'
 #!/bin/sh /etc/rc.common
