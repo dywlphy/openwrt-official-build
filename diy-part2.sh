@@ -172,13 +172,27 @@ echo "从官方源安装 avahi..."
 
 # 从 brlaser 源安装 Brother 驱动
 echo "===== 安装 Brother 打印机驱动 ====="
-./scripts/feeds update brlaser
-./scripts/feeds install brlaser
-echo "  ✅ brlaser 安装完成"
-# +++ 新增：打印机驱动安装（保持原代码后添加）+++
-echo "===== 安装打印机驱动 ====="
-./scripts/feeds install -f -p cups brlaser 2>/dev/null && echo "  ✅ brlaser 安装成功" || echo "  ⚠️ brlaser 安装失败"
-./scripts/feeds install -f -p cups hplip-ppds 2>/dev/null && echo "  ✅ hplip-ppds 安装成功" || echo "  ⚠️ hplip-ppds 安装失败"
+if ./scripts/feeds update brlaser; then
+    echo "  ✅ brlaser feed 更新成功"
+    if ./scripts/feeds install brlaser; then
+        echo "  ✅ brlaser 驱动安装成功"
+    else
+        echo "  ❌ brlaser 驱动安装失败"
+        exit 1
+    fi
+else
+    echo "  ❌ brlaser feed 更新失败"
+    exit 1
+fi
+
+# 安装 HP 打印机驱动
+echo "===== 安装 HP 打印机驱动 ====="
+if ./scripts/feeds install -f -p cups hplip-ppds 2>/dev/null; then
+    echo "  ✅ hplip-ppds 安装成功"
+else
+    echo "  ❌ hplip-ppds 安装失败"
+    exit 1
+fi
 # +++ 追加：强制启用打印机驱动配置 +++
 echo "===== 强制启用驱动配置 ====="
 echo "CONFIG_PACKAGE_brlaser=y" >> .config
