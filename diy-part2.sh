@@ -14,6 +14,26 @@ for cfg in target/linux/x86/image/grub-efi.cfg target/linux/x86/image/grub-pc.cf
     fi
 done
 
+# ==========================================
+# 修复 curl 和 tiff 编译问题
+# ==========================================
+
+# 1. 修复 tiff：禁用有问题的选项
+TIFF_MK=$(find feeds -name "tiff" -type d 2>/dev/null | head -1)/Makefile
+if [ -f "$TIFF_MK" ]; then
+    # 禁用 webp 支持（常见编译失败原因）
+    sed -i 's/--enable-webp/--disable-webp/g' "$TIFF_MK"
+    echo "  ✅ tiff Makefile 已修复"
+fi
+
+# 2. 修复 curl：禁用有问题的测试
+CURL_MK=$(find feeds -name "curl" -type d 2>/dev/null | head -1)/Makefile
+if [ -f "$CURL_MK" ]; then
+    # 禁用导致编译失败的测试
+    sed -i 's/--enable-debug/--disable-debug/g' "$CURL_MK"
+    echo "  ✅ curl Makefile 已修复"
+fi
+
 # ----- 修复 cups-bjnp Makefile 路径错误 -----
 echo "===== 修复 cups-bjnp Makefile 路径错误 ====="
 CUPSBJNP_MK="feeds/immortalwrt/utils/cups-bjnp/Makefile"
@@ -192,12 +212,12 @@ echo "从 immortalwrt 源安装扩展包..."
 echo "从 smpackage 源安装 CUPS 核心包..."
 ./scripts/feeds install -f -p smpackage cups cups-filters dbus luci-app-cupsd 2>/dev/null && echo "  ✅ CUPS 核心包安装成功" || echo "  ⚠️ CUPS 核心包安装失败"
 
-# 修复 cups Makefile，添加缺失的依赖声明
-CUPS_MK=$(find feeds -name "cups" -type d | head -1)/Makefile
+CUPS_MK="feeds/smpackage/cups/Makefile"
 if [ -f "$CUPS_MK" ]; then
-    # 在 DEPENDS 中添加缺失的库
     sed -i 's/DEPENDS:=/DEPENDS:=+libusb-1.0 +libstdcpp /' "$CUPS_MK"
     echo "  ✅ cups Makefile 已修复"
+else
+    echo "  ⚠️ 未找到 feeds/smpackage/cups/Makefile"
 fi
 
 echo "从官方源安装 avahi..."
