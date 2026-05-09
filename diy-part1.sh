@@ -1,8 +1,3 @@
-#!/bin/bash
-# ==========================================
-# feeds 配置：第三方源 + 官方源（官方优先级最高）
-# ==========================================
-
 echo "===== 配置 feeds 源 ====="
 
 # 清除旧的 feeds.conf，从零开始
@@ -19,10 +14,13 @@ echo "src-git small https://github.com/kenzok8/small.git" >> feeds.conf
 echo "src-git smpackage https://github.com/kenzok8/small-package" >> feeds.conf
 echo "src-git helloworld https://github.com/fw876/helloworld" >> feeds.conf
 echo "src-git cups https://github.com/op4packages/openwrt-cups.git" >> feeds.conf
-echo "src-git brlaser https://github.com/pdewacht/brlaser.git" >> feeds.conf   # ← 只加了这一行
+echo "src-git brlaser https://github.com/pdewacht/brlaser.git" >> feeds.conf
 
 echo "✅ feeds.conf 配置完成"
-echo "已添加："
-echo "  - 官方: packages, luci (优先级高)"
-echo "  - 第三方: immortalwrt, kenzo, small, smpackage, helloworld, cups, brlaser"
-cat feeds.conf
+
+# 关键：更新 feeds 后删除 smpackage 中的冲突包
+echo "===== 清理冲突包 ====="
+rm -rf feeds/smpackage/curl 2>/dev/null || true
+rm -rf feeds/smpackage/dbus 2>/dev/null || true
+rm -rf feeds/smpackage/openssl 2>/dev/null || true
+echo "  ✅ 冲突包已清理"
