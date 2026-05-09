@@ -146,7 +146,7 @@ if [ -f "$GS_MAKEFILE" ]; then
     echo "  🔧 ghostscript Makefile 已修复"
 fi
 
-./scripts/feeds install -f -p cups ghostscript 2>/dev/null && echo "  ✅ ghostscript 安装成功" || echo "  ⚠️ ghostscript 安装失败"
+./scripts/feeds install -f -p cups ghostscript && echo "  ✅ ghostscript 安装成功" || echo "  ⚠️ ghostscript 安装失败"
 
 # +++ 修改点 2：如果 ghostscript 安装失败，尝试二次修复 +++
 if ! grep -q "CONFIG_PACKAGE_ghostscript=y" .config 2>/dev/null; then
