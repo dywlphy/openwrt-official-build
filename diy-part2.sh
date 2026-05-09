@@ -37,10 +37,11 @@ fi
 # 修复 cups-bjnp
 CUPSBJNP_MK="feeds/immortalwrt/utils/cups-bjnp/Makefile"
 if [ -f "$CUPSBJNP_MK" ]; then
+    # 修复 cupsbackenddir 路径
     sed -i 's|--with-cupsbackenddir=$(STAGING_DIR)/usr/include/cups|--with-cupsbackenddir=$(STAGING_DIR)/usr/lib/cups/backend|' "$CUPSBJNP_MK"
+    # 额外添加 CUPS_CONFIG 环境变量，帮助 configure 找到 cups-config
+    sed -i 's|CONFIGURE_ARGS =|CONFIGURE_ARGS = CUPS_CONFIG=$(STAGING_DIR)/host/bin/cups-config |' "$CUPSBJNP_MK"
     echo "  ✅ cups-bjnp Makefile 已修复"
-else
-    echo "  ⚠️ 未找到 cups-bjnp Makefile"
 fi
 
 # 修复 ghostscript
