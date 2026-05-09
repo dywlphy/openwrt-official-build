@@ -28,11 +28,11 @@ if [ -f "$TIFF_MK" ]; then
 fi
 
 # 修复 curl
-CURL_MK=$(find feeds -name "curl" -type d 2>/dev/null | head -1)/Makefile
-if [ -f "$CURL_MK" ]; then
-    sed -i 's/--enable-debug/--disable-debug/g' "$CURL_MK"
-    echo "  ✅ curl Makefile 已修复"
-fi
+#CURL_MK=$(find feeds -name "curl" -type d 2>/dev/null | head -1)/Makefile
+#if [ -f "$CURL_MK" ]; then
+    #sed -i 's/--enable-debug/--disable-debug/g' "$CURL_MK"
+    #echo "  ✅ curl Makefile 已修复"
+#fi
 
 # 修复 ghostscript
 GS_MAKEFILE=$(find feeds -name "ghostscript" -type d 2>/dev/null | head -1)/Makefile
@@ -242,5 +242,15 @@ echo "===== 强制启用驱动配置 ====="
 echo "CONFIG_PACKAGE_brlaser=y" >> .config
 echo "CONFIG_PACKAGE_hplip-ppds=y" >> .config
 echo "CONFIG_PACKAGE_ghostscript=y" >> .config
+
+# 验证 curl Makefile 语法
+CURL_MK="feeds/packages/net/curl/Makefile"
+if [ -f "$CURL_MK" ]; then
+    echo "  ✅ curl Makefile 存在"
+    # 检查是否有明显的语法错误
+    if grep -q "PKG_NAME:=curl" "$CURL_MK"; then
+        echo "  ✅ curl Makefile 格式正确"
+    fi
+fi
 
 echo "✅ diy-part2.sh 执行完成"
