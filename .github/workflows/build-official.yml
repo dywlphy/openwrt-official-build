@@ -93,6 +93,29 @@ jobs:
           [ -f "$idx" ] && sed -i '/onionshare-cli/d' "$idx" || true
         done
         
+        # dbus-libs 修复
+        DBUS_MK="feeds/packages/utils/dbus/Makefile"
+        if [ -f "$DBUS_MK" ] && ! grep -q "Package/dbus-libs" "$DBUS_MK"; then
+          sed -i '/^define Package\/dbus$/,/^endef$/{ /DEPENDS:/ s/$/ +dbus-libs/ }' "$DBUS_MK"
+          cat >> "$DBUS_MK" << 'EOF'
+        
+        define Package/dbus-libs
+          SECTION:=libs
+          CATEGORY:=Libraries
+          DEPENDS:=+libexpat
+          TITLE:=D-Bus library
+        endef
+        
+        define Package/dbus-libs/install
+        	$(INSTALL_DIR) $(1)/usr/lib
+        	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libdbus-1.so.* $(1)/usr/lib/
+        endef
+        
+        $(eval $(call BuildPackage,dbus-libs))
+        EOF
+          echo "  ✅ dbus-libs 修复已应用"
+        fi
+        
         rm -rf tmp/
         echo "✅ 冲突包已清除"
     - name: Run make defconfig
