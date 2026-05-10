@@ -48,6 +48,38 @@ if [ -f "$CUPS_MK" ]; then
     echo "  ✅ cups Makefile 已修复"
 fi
 
+# 修复 dbus Makefile - 添加缺失的子包声明
+DBUS_MK="feeds/packages/utils/dbus/Makefile"
+if [ -f "$DBUS_MK" ]; then
+    # 检查是否已有 dbus-libs 子包定义
+    if ! grep -q "Package/dbus-libs" "$DBUS_MK"; then
+        # 在 dbus 包定义之前插入 dbus-libs 子包
+        sed -i '/^define Package\/dbus$/,/^endef$/i \
+define Package/dbus-libs\
+  $(call Package/dbus/Default)\
+  TITLE:=D-Bus Library\
+  DEPENDS:=+libexpat\
+endef\
+\
+define Package/dbus-libs/install\
+  $(INSTALL_DIR) $(1)/usr/lib\
+  $(CP) $(PKG_INSTALL_DIR)/usr/lib/libdbus-1.so* $(1)/usr/lib/\
+endef\
+\
+' "$DBUS_MK"
+        # 将 dbus-libs 添加到 Build/Package 列表
+        sed -i 's/^Build/Build/' "$DBUS_MK"
+        if ! grep -q "dbus-libs" "$DBUS_MK" | grep -q "Build/Depends"; then
+            sed -i '/^PKG_CONFIG_DEPENDS/a \
+  DBUS_PROVIDES:=dbus-libs\
+' "$DBUS_MK"
+        fi
+        echo "  ✅ dbus Makefile 已修复（添加 dbus-libs 子包）"
+    else
+        echo "  ✅ dbus Makefile 已有 dbus-libs 子包"
+    fi
+fi
+
 # ==========================================
 # 3. 创建目录和文件
 # ==========================================
@@ -240,10 +272,10 @@ echo "===== 安装 HP 打印机驱动 ====="
 # ==========================================
 # 9. 强制启用驱动配置
 # ==========================================
-echo "===== 强制启用驱动配置 ====="
-echo "CONFIG_PACKAGE_brlaser=y" >> .config
-echo "CONFIG_PACKAGE_hplip-ppds=y" >> .config
-echo "CONFIG_PACKAGE_ghostscript=y" >> .config
+#echo "===== 强制启用驱动配置 ====="
+#echo "CONFIG_PACKAGE_brlaser=y" >> .config
+#echo "CONFIG_PACKAGE_hplip-ppds=y" >> .config
+#echo "CONFIG_PACKAGE_ghostscript=y" >> .config
 
 # 验证 curl Makefile 语法
 CURL_MK="feeds/packages/net/curl/Makefile"
