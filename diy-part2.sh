@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==========================================
-# diy-part2.sh - 自启动脚本 + 自动共享 + CUPS + GRUB修复
-# OpenWrt 24 专用
+# diy-part2.sh -  自启动脚本 + 自动共享 + CUPS + GRUB修复
+# OpenWrt 24 专用 - 方案三（精确拉取）
 # ==========================================
 
 # ==========================================
@@ -16,36 +16,29 @@ for cfg in target/linux/x86/image/grub-efi.cfg target/linux/x86/image/grub-pc.cf
 done
 
 # ==========================================
-# 2. 修复 Makefile 问题
+# 2. 修复 Makefile 问题（使用 find 动态查找）
 # ==========================================
 echo "===== 修复 Makefile 问题 ====="
 
 # 修复 tiff
-TIFF_MK=$(find feeds -name "tiff" -type d 2>/dev/null | head -1)/Makefile
-if [ -f "$TIFF_MK" ]; then
+TIFF_MK=$(find feeds -path "*/tiff/Makefile" 2>/dev/null | head -1)
+if [ -n "$TIFF_MK" ] && [ -f "$TIFF_MK" ]; then
     sed -i 's/--enable-webp/--disable-webp/g' "$TIFF_MK"
-    echo "  ✅ tiff Makefile 已修复"
+    echo "  ✅ tiff Makefile 已修复: $TIFF_MK"
 fi
-
-# 修复 curl
-#CURL_MK=$(find feeds -name "curl" -type d 2>/dev/null | head -1)/Makefile
-#if [ -f "$CURL_MK" ]; then
-    #sed -i 's/--enable-debug/--disable-debug/g' "$CURL_MK"
-    #echo "  ✅ curl Makefile 已修复"
-#fi
 
 # 修复 ghostscript
-GS_MAKEFILE=$(find feeds -name "ghostscript" -type d 2>/dev/null | head -1)/Makefile
-if [ -f "$GS_MAKEFILE" ]; then
-    sed -i 's/--enable-cups/--with-install-cups/g' "$GS_MAKEFILE"
-    echo "  🔧 ghostscript Makefile 已修复"
+GS_MK=$(find feeds -path "*/ghostscript/Makefile" 2>/dev/null | head -1)
+if [ -n "$GS_MK" ] && [ -f "$GS_MK" ]; then
+    sed -i 's/--enable-cups/--with-install-cups/g' "$GS_MK"
+    echo "  ✅ ghostscript Makefile 已修复: $GS_MK"
 fi
 
-# 修复 cups Makefile
-CUPS_MK="feeds/smpackage/cups/Makefile"
-if [ -f "$CUPS_MK" ]; then
+# 修复 cups Makefile（从 smpackage 源）
+CUPS_MK=$(find feeds/smpackage -path "*/cups/Makefile" 2>/dev/null | head -1)
+if [ -n "$CUPS_MK" ] && [ -f "$CUPS_MK" ]; then
     sed -i 's/DEPENDS:=/DEPENDS:=+libusb-1.0 +libstdcpp /' "$CUPS_MK"
-    echo "  ✅ cups Makefile 已修复"
+    echo "  ✅ cups Makefile 已修复: $CUPS_MK"
 fi
 
 # ==========================================
@@ -90,6 +83,8 @@ start() {
     [ -x /etc/init.d/ksmbd ] && /etc/init.d/ksmbd enable && /etc/init.d/ksmbd start
     [ -x /etc/init.d/miniupnpd ] && /etc/init.d/miniupnpd enable && /etc/init.d/miniupnpd start
     [ -x /etc/init.d/ddns ] && /etc/init.d/ddns enable && /etc/init.d/ddns start
+    [ -x /etc/init.d/adblock ] && /etc/init.d/adblock enable && /etc/init.d/adblock start
+    [ -x /etc/init.d/nlbwmon ] && /etc/init.d/nlbwmon enable && /etc/init.d/nlbwmon start
 }
 EOF
 chmod +x files/etc/init.d/custom-autostart
@@ -175,84 +170,42 @@ ln -sf ../init.d/auto-share-init files/etc/rc.d/S98auto-share-init
 echo "  ✅ 自动共享脚本已创建"
 
 # ==========================================
-# 6. 安装中文语言包
+# 6. 安装中文语言包（精确安装）
 # ==========================================
 echo "===== 安装中文语言包 ====="
-./scripts/feeds install luci-i18n-base-zh-cn && echo "  ✅ luci-i18n-base-zh-cn 安装成功" || echo "  ⚠️ luci-i18n-base-zh-cn 安装失败"
-./scripts/feeds install luci-i18n-firewall-zh-cn && echo "  ✅ luci-i18n-firewall-zh-cn 安装成功" || echo "  ⚠️ luci-i18n-firewall-zh-cn 安装失败"
-./scripts/feeds install luci-i18n-opkg-zh-cn && echo "  ✅ luci-i18n-opkg-zh-cn 安装成功" || echo "  ⚠️ luci-i18n-opkg-zh-cn 安装失败"
-./scripts/feeds install luci-i18n-upnp-zh-cn && echo "  ✅ luci-i18n-upnp-zh-cn 安装成功" || echo "  ⚠️ luci-i18n-upnp-zh-cn 安装失败"
-./scripts/feeds install luci-i18n-ddns-zh-cn && echo "  ✅ luci-i18n-ddns-zh-cn 安装成功" || echo "  ⚠️ luci-i18n-ddns-zh-cn 安装失败"
-./scripts/feeds install luci-i18n-sqm-zh-cn && echo "  ✅ luci-i18n-sqm-zh-cn 安装成功" || echo "  ⚠️ luci-i18n-sqm-zh-cn 安装失败"
-./scripts/feeds install luci-i18n-wol-zh-cn && echo "  ✅ luci-i18n-wol-zh-cn 安装成功" || echo "  ⚠️ luci-i18n-wol-zh-cn 安装失败"
-./scripts/feeds install luci-i18n-nft-qos-zh-cn && echo "  ✅ luci-i18n-nft-qos-zh-cn 安装成功" || echo "  ⚠️ luci-i18n-nft-qos-zh-cn 安装失败"
-./scripts/feeds install luci-i18n-attendedsysupgrade-zh-cn && echo "  ✅ luci-i18n-attendedsysupgrade-zh-cn 安装成功" || echo "  ⚠️ luci-i18n-attendedsysupgrade-zh-cn 安装失败"
-./scripts/feeds install luci-i18n-wireguard-zh-cn && echo "  ✅ luci-i18n-wireguard-zh-cn 安装成功" || echo "  ⚠️ luci-i18n-wireguard-zh-cn 安装失败"
-./scripts/feeds install luci-i18n-ttyd-zh-cn && echo "  ✅ luci-i18n-ttyd-zh-cn 安装成功" || echo "  ⚠️ luci-i18n-ttyd-zh-cn 安装失败"
+./scripts/feeds install luci-i18n-base-zh-cn && echo "  ✅ luci-i18n-base-zh-cn" || echo "  ⚠️ luci-i18n-base-zh-cn 失败"
+./scripts/feeds install luci-i18n-firewall-zh-cn && echo "  ✅ luci-i18n-firewall-zh-cn" || echo "  ⚠️ luci-i18n-firewall-zh-cn 失败"
+./scripts/feeds install luci-i18n-opkg-zh-cn && echo "  ✅ luci-i18n-opkg-zh-cn" || echo "  ⚠️ luci-i18n-opkg-zh-cn 失败"
+./scripts/feeds install luci-i18n-upnp-zh-cn && echo "  ✅ luci-i18n-upnp-zh-cn" || echo "  ⚠️ luci-i18n-upnp-zh-cn 失败"
+./scripts/feeds install luci-i18n-ddns-zh-cn && echo "  ✅ luci-i18n-ddns-zh-cn" || echo "  ⚠️ luci-i18n-ddns-zh-cn 失败"
+./scripts/feeds install luci-i18n-sqm-zh-cn && echo "  ✅ luci-i18n-sqm-zh-cn" || echo "  ⚠️ luci-i18n-sqm-zh-cn 失败"
+./scripts/feeds install luci-i18n-wol-zh-cn && echo "  ✅ luci-i18n-wol-zh-cn" || echo "  ⚠️ luci-i18n-wol-zh-cn 失败"
+./scripts/feeds install luci-i18n-nft-qos-zh-cn && echo "  ✅ luci-i18n-nft-qos-zh-cn" || echo "  ⚠️ luci-i18n-nft-qos-zh-cn 失败"
+./scripts/feeds install luci-i18n-attendedsysupgrade-zh-cn && echo "  ✅ luci-i18n-attendedsysupgrade-zh-cn" || echo "  ⚠️ luci-i18n-attendedsysupgrade-zh-cn 失败"
+./scripts/feeds install luci-i18n-wireguard-zh-cn && echo "  ✅ luci-i18n-wireguard-zh-cn" || echo "  ⚠️ luci-i18n-wireguard-zh-cn 失败"
+./scripts/feeds install luci-i18n-ttyd-zh-cn && echo "  ✅ luci-i18n-ttyd-zh-cn" || echo "  ⚠️ luci-i18n-ttyd-zh-cn 失败"
+./scripts/feeds install luci-i18n-ssr-plus-zh-cn && echo "  ✅ luci-i18n-ssr-plus-zh-cn" || echo "  ⚠️ luci-i18n-ssr-plus-zh-cn 失败"
+./scripts/feeds install luci-i18n-cupsd-zh-cn && echo "  ✅ luci-i18n-cupsd-zh-cn" || echo "  ⚠️ luci-i18n-cupsd-zh-cn 失败"
+./scripts/feeds install luci-i18n-adblock-zh-cn && echo "  ✅ luci-i18n-adblock-zh-cn" || echo "  ⚠️ luci-i18n-adblock-zh-cn 失败"
+./scripts/feeds install luci-i18n-nlbwmon-zh-cn && echo "  ✅ luci-i18n-nlbwmon-zh-cn" || echo "  ⚠️ luci-i18n-nlbwmon-zh-cn 失败"
+./scripts/feeds install luci-i18n-commands-zh-cn && echo "  ✅ luci-i18n-commands-zh-cn" || echo "  ⚠️ luci-i18n-commands-zh-cn 失败"
+./scripts/feeds install luci-i18n-watchcat-zh-cn && echo "  ✅ luci-i18n-watchcat-zh-cn" || echo "  ⚠️ luci-i18n-watchcat-zh-cn 失败"
+./scripts/feeds install luci-i18n-autoreboot-zh-cn 2>/dev/null && echo "  ✅ luci-i18n-autoreboot-zh-cn" || echo "  ⚠️ luci-i18n-autoreboot-zh-cn 失败"
 
 # ==========================================
-# 7. 安装 CUPS 相关包
+# 8. 安装 avahi（网络打印机发现）
 # ==========================================
-echo "===== 安装 CUPS 相关包 ====="
-echo "从 openwrt-cups 源安装打印驱动包..."
-./scripts/feeds install -f -p cups ghostscript && echo "  ✅ ghostscript 安装成功" || echo "  ⚠️ ghostscript 安装失败"
-./scripts/feeds install -f -p cups gutenprint && echo "  ✅ gutenprint 安装成功" || echo "  ⚠️ gutenprint 安装失败"
-./scripts/feeds install -f -p cups foomatic-db && echo "  ✅ foomatic-db 安装成功" || echo "  ⚠️ foomatic-db 安装失败"
-./scripts/feeds install -f -p cups foomatic-db-engine && echo "  ✅ foomatic-db-engine 安装成功" || echo "  ⚠️ foomatic-db-engine 安装失败"
-echo "从 immortalwrt 源安装扩展包..."
-./scripts/feeds install -f -p immortalwrt cups-bjnp && echo "  ✅ cups-bjnp 安装成功" || echo "  ⚠️ cups-bjnp 安装失败"
-# 从 smpackage 源安装 CUPS 核心包（不要包含 dbus）
-./scripts/feeds install -f -p smpackage cups cups-filters luci-app-cupsd && echo "  ✅ CUPS 核心包安装成功" || echo "  ⚠️ CUPS 核心包安装失败"
-
-# ========== 修复 cups-bjnp Makefile（必须在 feeds install 之后）==========
-CUPSBJNP_MK="feeds/immortalwrt/utils/cups-bjnp/Makefile"
-if [ -f "$CUPSBJNP_MK" ]; then
-    # 修复 backend 目录路径 - 使用绝对路径
-    sed -i 's|--with-cupsbackenddir=.*|--with-cupsbackenddir=/usr/lib/cups/backend|' "$CUPSBJNP_MK"
-    # 添加编译顺序依赖，确保 cups 先编译
-    sed -i 's/^DEPENDS:=.*/DEPENDS:=+cups +libcupsimage/' "$CUPSBJNP_MK"
-    # 添加 CFLAGS 指向 cups 头文件
-    sed -i '/^CONFIGURE_ARGS/i \TARGET_CFLAGS += -I$(STAGING_DIR)/usr/include/cups' "$CUPSBJNP_MK"
-    echo "  ✅ cups-bjnp Makefile 已修复"
-else
-    echo "  ⚠️ 未找到 cups-bjnp Makefile"
-fi
-
-echo "从官方源安装 avahi..."
-./scripts/feeds install avahi-dbus-daemon && echo "  ✅ avahi-dbus-daemon 安装成功" || {
-    ./scripts/feeds install avahi-nodbus-daemon && echo "  ✅ avahi-nodbus-daemon 安装成功" || echo "  ⚠️ avahi 安装失败"
+echo "===== 安装 avahi ====="
+./scripts/feeds install avahi-dbus-daemon && echo "  ✅ avahi-dbus-daemon" || {
+    ./scripts/feeds install avahi-nodbus-daemon && echo "  ✅ avahi-nodbus-daemon" || echo "  ⚠️ avahi 失败"
 }
 
 # ==========================================
-# 8. 安装打印机驱动
+# 9. 安装 ksmbd 相关（文件共享）
 # ==========================================
-echo "===== 安装 Brother 打印机驱动 ====="
-if ./scripts/feeds update brlaser; then
-    echo "  ✅ brlaser feed 更新成功"
-    ./scripts/feeds install brlaser && echo "  ✅ brlaser 驱动安装成功" || echo "  ❌ brlaser 驱动安装失败"
-else
-    echo "  ❌ brlaser feed 更新失败"
-fi
-
-echo "===== 安装 HP 打印机驱动 ====="
-./scripts/feeds install -f -p cups hplip-ppds && echo "  ✅ hplip-ppds 安装成功" || echo "  ❌ hplip-ppds 安装失败"
-
-# ==========================================
-# 9. 强制启用驱动配置
-# ==========================================
-#echo "===== 强制启用驱动配置 ====="
-#echo "CONFIG_PACKAGE_brlaser=y" >> .config
-#echo "CONFIG_PACKAGE_hplip-ppds=y" >> .config
-#echo "CONFIG_PACKAGE_ghostscript=y" >> .config
-
-# 验证 curl Makefile 语法
-CURL_MK="feeds/packages/net/curl/Makefile"
-if [ -f "$CURL_MK" ]; then
-    echo "  ✅ curl Makefile 存在"
-    # 检查是否有明显的语法错误
-    if grep -q "PKG_NAME:=curl" "$CURL_MK"; then
-        echo "  ✅ curl Makefile 格式正确"
-    fi
-fi
+echo "===== 安装 ksmbd ====="
+./scripts/feeds install ksmbd-server && echo "  ✅ ksmbd-server" || echo "  ⚠️ ksmbd-server 失败"
+./scripts/feeds install ksmbd-utils && echo "  ✅ ksmbd-utils" || echo "  ⚠️ ksmbd-utils 失败"
+./scripts/feeds install luci-app-ksmbd && echo "  ✅ luci-app-ksmbd" || echo "  ⚠️ luci-app-ksmbd 失败"
 
 echo "✅ diy-part2.sh 执行完成"
