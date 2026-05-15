@@ -38,16 +38,19 @@ echo "[5/6] 集成CUPS中文汉化..."
 mkdir -p package/base-files/files/usr/share/cups/templates
 mkdir -p package/base-files/files/usr/share/cups/doc-root
 
-if [ -f "$GITHUB_WORKSPACE/CUPS-zh.zip" ]; then
-    unzip -o $GITHUB_WORKSPACE/CUPS-zh.zip -d /tmp/cups-zh
-    cp -r /tmp/cups-zh/CUPS-zh/CUPS-2.4.2/usr_share_cups_templates/* package/base-files/files/usr/share/cups/templates/
-    cp -r /tmp/cups-zh/CUPS-zh/CUPS-2.4.2/usr_share_cups_doc-root/* package/base-files/files/usr/share/cups/doc-root/
+# 从仓库复制汉化文件（需要把CUPS_2.3.1_zh_CN.zip上传到仓库）
+if [ -f "$GITHUB_WORKSPACE/CUPS_2.3.1_zh_CN.zip" ]; then
+    unzip -o $GITHUB_WORKSPACE/CUPS_2.3.1_zh_CN.zip -d /tmp/cups-zh
+    # 复制中文模板到 templates
+    cp -r /tmp/cups-zh/zh_CN/* package/base-files/files/usr/share/cups/templates/
+    # 复制首页
+    cp /tmp/cups-zh/index.html package/base-files/files/usr/share/cups/doc-root/ 2>/dev/null || true
     chmod -R 755 package/base-files/files/usr/share/cups/templates
     chmod -R 755 package/base-files/files/usr/share/cups/doc-root
     rm -rf /tmp/cups-zh
     echo "CUPS汉化文件已集成"
 else
-    echo "警告: 未找到CUPS-zh.zip，跳过"
+    echo "警告: 未找到CUPS_2.3.1_zh_CN.zip，跳过"
 fi
 
 # 6. CUPS 默认配置（启用Avahi）
