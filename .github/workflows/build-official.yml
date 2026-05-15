@@ -105,8 +105,6 @@ jobs:
         cd openwrt
         make defconfig
         # 强制启用可能被defconfig禁用的包
-        echo "CONFIG_PACKAGE_luci-app-accesscontrol=y" >> .config
-        echo "CONFIG_PACKAGE_luci-i18n-accesscontrol-zh-cn=y" >> .config
         echo "CONFIG_PACKAGE_cups-pdf=y" >> .config
         echo "CONFIG_PACKAGE_frp=y" >> .config
         make defconfig
@@ -117,6 +115,7 @@ jobs:
       id: compile
       run: |
         cd openwrt
+        
         # 开始编译
         make -j$(nproc) || make -j1 || make -j1 V=s
         echo "status=success" >> "$GITHUB_OUTPUT"
