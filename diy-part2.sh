@@ -2,7 +2,6 @@
 #
 # diy-part2.sh - 更新feeds后的自定义配置
 # OpenWrt 24.10 版本
-# 注意: CUPS汉化集成已移至 build-official.yml 中处理
 #
 
 echo "=========================================="
@@ -38,71 +37,95 @@ cat > package/base-files/files/etc/banner << 'EOF'
  -----------------------------------------------------
 EOF
 
-# 5. GRUB等待时间 + CUPS默认配置
-echo "[5/5] 配置GRUB和CUPS默认设置..."
+# 5. 创建 cups-zh-cn 中文汉化包 + GRUB配置
+echo "[5/5] 创建CUPS汉化包和GRUB配置..."
 
 # GRUB等待时间2秒
-sed -i 's/set timeout=.*/set timeout=2/' package/base-files/files/boot/grub/grub.cfg 2>/dev/null || echo "set timeout=2" > package/base-files/files/boot/grub/grub.cfg
+mkdir -p package/base-files/files/boot/grub
+echo "set timeout=2" > package/base-files/files/boot/grub/grub.cfg
 
-# CUPS配置（启用Avahi发现）
-mkdir -p package/base-files/files/etc/cups
-cat > package/base-files/files/etc/cups/cupsd.conf << 'EOF'
-# CUPS 配置文件 - OpenWrt 24.10
-Listen *:631
-Listen /var/run/cups/cups.sock
-LogLevel warn
-AccessLog /var/log/cups/access_log
-ErrorLog /var/log/cups/error_log
-DefaultPolicy default
+# 创建 cups-zh-cn 自定义包
+mkdir -p package/cups-zh-cn/files/usr/share/cups/zh_CN
+mkdir -p package/cups-zh-cn/files/usr/share/cups/doc-root
 
-<Location />
-  Order allow,deny
-  Allow @LOCAL
-</Location>
+if [ -f "$GITHUB_WORKSPACE/CUPS_2.3.1_zh_CN.zip" ]; then
+    unzip -o $GITHUB_WORKSPACE/CUPS_2.3.1_zh_CN.zip -d /tmp/cups-zh
+    # 复制中文模板到包目录
+    cp -r /tmp/cups-zh/zh_CN/* package/cups-zh-cn/files/usr/share/cups/zh_CN/ 2>/dev/null || true
+    # 复制首页
+    cp /tmp/cups-zh/index.html package/cups-zh-cn/files/usr/share/cups/doc-root/ 2>/dev/null || true
+    rm -rf /tmp/cups-zh
+    echo "  - CUPS中文模板已准备"
+else
+    echo "  - 警告: 未找到CUPS_2.3.1_zh_CN.zip"
+fi
 
-<Location /admin>
-  Order allow,deny
-  Allow @LOCAL
-</Location>
+# 创建 cups-zh-cn Makefile
+cat > package/cups-zh-cn/Makefile << 'MAKEEOF'
+include $(TOPDIR)/rules.mk
 
-<Location /admin/conf>
-  AuthType Default
-  Require user @SYSTEM
-  Order allow,deny
-  Allow @LOCAL
-</Location>
+PKG_NAME:=cups-zh-cn
+PKG_VERSION:=2.3.1
+PKG_RELEASE:=1
 
-<Location /printers>
-  Order allow,deny
-  Allow @LOCAL
-</Location>
+PKG_MAINTAINER:=OpenWrt Builder
+PKG_LICENSE:=GPL-2.0-only
 
-Browsing On
-BrowseLocalProtocols dnssd
-EOF
+include $(INCLUDE_DIR)/package.mk
 
-# Avahi服务文件（CUPS打印机发现）
-mkdir -p package/base-files/files/etc/avahi/services
-cat > package/base-files/files/etc/avahi/services/cups.service << 'EOF'
-<?xml version="1.0" standalone='no'?>
-<!DOCTYPE service-group SYSTEM "avahi-service.dtd">
-<service-group>
-  <name replace-wildcards="yes">CUPS 打印服务器 @ %h</name>
-  <service>
-    <type>_ipp._tcp</type>
-    <port>631</port>
-    <txt-record>txtvers=1</txt-record>
-    <txt-record>qtotal=1</txt-record>
-    <txt-record>rp=printers/</txt-record>
-  </service>
-</service-group>
-EOF
+define Package/cups-zh-cn
+  SECTION:=utils
+  CATEGORY:=Utilities
+  TITLE:=CUPS Chinese (Simplified) Templates
+  DEPENDS:=+cups
+  PKGARCH:=all
+endef
+
+define Package/cups-zh-cn/description
+  Simplified Chinese language templates for CUPS web interface.
+  Replaces default English templates after installation.
+endef
+
+define Build/Compile
+endef
+
+define Package/cups-zh-cn/install
+	$(INSTALL_DIR) $(1)/usr/share/cups/zh_CN
+	$(CP) ./files/usr/share/cups/zh_CN/* $(1)/usr/share/cups/zh_CN/
+	$(INSTALL_DIR) $(1)/usr/share/cups/doc-root
+	$(INSTALL_BIN) ./files/usr/share/cups/doc-root/index.html $(1)/usr/share/cups/doc-root/
+endef
+
+define Package/cups-zh-cn/postinst
+#!/bin/sh
+[ -n "$${IPKG_INSTROOT}" ] || {
+	[ -d /usr/share/cups/zh_CN ] && {
+		cp -rf /usr/share/cups/zh_CN/* /usr/share/cups/templates/
+		rm -rf /usr/share/cups/zh_CN
+		[ -x /etc/init.d/cupsd ] && /etc/init.d/cupsd restart 2>/dev/null
+	}
+}
+exit 0
+endef
+
+define Package/cups-zh-cn/postrm
+#!/bin/sh
+[ -n "$${IPKG_INSTROOT}" ] || {
+	[ -x /etc/init.d/cupsd ] && /etc/init.d/cupsd restart 2>/dev/null
+}
+exit 0
+endef
+
+$(eval $(call BuildPackage,cups-zh-cn))
+MAKEEOF
+
+echo "  - cups-zh-cn 包已创建"
 
 echo "=========================================="
 echo "构建信息:"
 echo "  - OpenWrt版本: 24.10 Official Stable"
 echo "  - 目标平台: x86_64"
-echo "  - 打印: CUPS + Avahi + 中文界面"
+echo "  - 打印: CUPS + Avahi + 中文界面(cups-zh-cn)"
 echo "  - VPN: WireGuard + pbr"
 echo "  - 网络: Tailscale/ACME/frp"
 echo "=========================================="
