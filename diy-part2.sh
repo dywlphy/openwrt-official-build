@@ -20,6 +20,15 @@ echo "[3/6] 设置默认主题为Material..."
 sed -i 's/luci-theme-bootstrap/luci-theme-material/g' feeds/luci/collections/luci/Makefile 2>/dev/null || true
 sed -i 's/luci-theme-bootstrap/luci-theme-material/g' package/feeds/luci/luci/Makefile 2>/dev/null || true
 
+# 4. 修复 glib2 编译问题（PassWall依赖）
+echo "[4/5] 修复 glib2 编译配置..."
+if [ -f "feeds/packages/libs/glib2/Makefile" ]; then
+    # 禁用文档和测试以避免编译问题
+    sed -i 's/-Ddocumentation=true/-Ddocumentation=false/g' feeds/packages/libs/glib2/Makefile 2>/dev/null || true
+    sed -i 's/-Dtests=true/-Dtests=false/g' feeds/packages/libs/glib2/Makefile 2>/dev/null || true
+    echo "  - glib2 文档和测试已禁用"
+fi
+
 # 4. 添加自定义banner
 echo "[4/6] 添加自定义banner..."
 cat > package/base-files/files/etc/banner << 'EOF'
