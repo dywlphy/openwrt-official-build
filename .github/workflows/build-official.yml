@@ -83,22 +83,6 @@ jobs:
     - name: Install feeds
       run: cd openwrt && ./scripts/feeds install -a
 
-    - name: Install PassWall
-      run: |
-        cd openwrt
-        # 移除 openwrt feeds 自带的核心库（避免版本冲突）
-        rm -rf feeds/packages/net/{xray-core,v2ray-geodata,sing-box,chinadns-ng,dns2socks,hysteria,ipt2socks,microsocks,naiveproxy,shadowsocks-libev,shadowsocks-rust,shadowsocksr-libev,simple-obfs,tcping,v2ray-plugin,xray-plugin,geoview,shadow-tls}
-        # 克隆 PassWall 依赖包
-        git clone https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git package/passwall-packages
-        # 移除 openwrt feeds 过时的 luci 版本
-        rm -rf feeds/luci/applications/luci-app-passwall
-        # 克隆 PassWall LuCI 界面
-        git clone https://github.com/Openwrt-Passwall/openwrt-passwall.git package/passwall-luci
-        # 重新安装 PassWall 相关包
-        ./scripts/feeds update passwall-packages
-        ./scripts/feeds update passwall-luci
-        ./scripts/feeds install -a
-
     - name: Load custom configuration
       run: |
         [ -e config.txt ] && cp config.txt openwrt/.config
