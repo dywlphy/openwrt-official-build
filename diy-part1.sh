@@ -16,7 +16,7 @@ echo "diy-part1.sh - 配置feeds源"
 echo "=========================================="
 
 # ============================================
-# 配置feeds源
+# 配置feeds源（不加PassWall feed）
 # ============================================
 echo "[1/3] 配置feeds源..."
 
@@ -29,14 +29,10 @@ EOF
 echo "[2/3] 当前feeds配置:"
 cat feeds.conf
 
-# ============================================
-# 显示OpenWrt版本信息
-# ============================================
 echo ""
 echo "[3/3] OpenWrt版本信息:"
 echo "Branch: openwrt-24.10"
 echo "Target: Official Stable"
-echo "Extra: printing feed + PassWall"
 
 echo ""
 echo "=========================================="
