@@ -133,6 +133,15 @@ jobs:
       id: compile
       run: |
         cd openwrt
+        
+        # 修复 glib2 编译问题: meson @ld@ 变量未替换
+        # 在 make defconfig 后 staging_dir 已生成，检查 meson 模板
+        MESON_CROSS=$(find staging_dir/host/lib/meson -name "openwrt-cross.txt.in" 2>/dev/null | head -1)
+        if [ -n "$MESON_CROSS" ] && ! grep -q '@ld@' "$MESON_CROSS" 2>/dev/null; then
+            sed -i '/@nm@/a @ld@' "$MESON_CROSS"
+            echo "已修复 meson 交叉编译模板: 添加 @ld@"
+        fi
+        
         # 开始编译
         make -j$(nproc) || make -j1 || make -j1 V=s
         echo "status=success" >> "$GITHUB_OUTPUT"
