@@ -314,6 +314,10 @@ CONFIG_PACKAGE_luci-i18n-pbr-zh-cn=y
 # ============================================
 CONFIG_PACKAGE_frp=y
 
+# 添加 luci-app-tailscale（之前漏了）
+CONFIG_PACKAGE_luci-app-tailscale=y
+CONFIG_PACKAGE_luci-i18n-tailscale-zh-cn=y
+
 # ============================================
 # 禁用不需要的包
 # ============================================
