@@ -7,7 +7,7 @@ on:
       ssh:
         description: 'SSH connection to Actions'
         required: false
-        default: 'true'
+        default: 'false'
 
 permissions:
   contents: write
@@ -92,7 +92,7 @@ jobs:
 
     - name: SSH connection to Actions
       uses: P3TERX/ssh2actions@v1.0.0
-      if: github.event.inputs.ssh == 'true' || github.event.action == 'ssh'
+      if: github.event.inputs.ssh == 'true'
 
     - name: Clean Go mod cache
       run: |
