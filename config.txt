@@ -28,6 +28,7 @@ CONFIG_LUCI_LANG_zh_Hans=y
 # ============================================
 CONFIG_PACKAGE_base-files=y
 CONFIG_PACKAGE_busybox=y
+CONFIG_PACKAGE_gzip=y
 CONFIG_PACKAGE_ca-bundle=y
 CONFIG_PACKAGE_ca-certificates=y
 CONFIG_PACKAGE_dnsmasq-full=y
