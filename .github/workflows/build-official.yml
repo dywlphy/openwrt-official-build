@@ -38,7 +38,8 @@ jobs:
           liblzo2-dev liblzma-dev libzstd-dev quilt u-boot-tools \
           python3-dev python3-pyelftools python3-yaml ccache \
           aria2 curl subversion \
-          libdbus-1-dev libexpat1-dev libglib2.0-dev
+          libdbus-1-dev libexpat1-dev libglib2.0-dev \
+          bash-completion
         sudo apt-get clean
         sudo timedatectl set-timezone "$TZ"
         sudo mkdir -p /workdir
@@ -129,5 +130,6 @@ jobs:
       run: |
         git config --local user.name "GitHub Actions"
         git config --local user.email "actions@github.com"
-        git tag -a "v24.10+Avahi+TurboACC" -m "OpenWrt 24.10 含Avahi/TurboACC/访问控制/Tailscale/ACME/文件管理器/CUPS-PDF $(date +%Y.%m.%d)"
-        git push origin "v24.10+Avahi+TurboACC"
+        TAG_NAME="v24.10+Avahi+功能包-$(date +%Y%m%d)"
+        git tag -a "$TAG_NAME" -m "OpenWrt 24.10 含Avahi/Tailscale/ACME/文件管理器/CUPS-PDF/访问控制 $(date +%Y.%m.%d)"
+        git push origin "$TAG_NAME"
