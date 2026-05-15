@@ -120,6 +120,12 @@ jobs:
       run: |
         cd openwrt
         make defconfig
+        # 强制启用可能被defconfig禁用的包
+        echo "CONFIG_PACKAGE_luci-app-accesscontrol=y" >> .config
+        echo "CONFIG_PACKAGE_luci-i18n-accesscontrol-zh-cn=y" >> .config
+        echo "CONFIG_PACKAGE_cups-pdf=y" >> .config
+        echo "CONFIG_PACKAGE_frp=y" >> .config
+        make defconfig
         make download -j8
         find dl -size -1024c -exec rm -f {} \;
 
