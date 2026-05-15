@@ -58,10 +58,10 @@ jobs:
       uses: actions/cache@v4
       with:
         path: /workdir/openwrt/dl
-        key: openwrt-dl-${{ hashFiles('diy-part1.sh') }}-${{ github.run_id }}
+        key: openwrt-dl-24.10-${{ hashFiles('diy-part1.sh') }}-${{ github.run_id }}
         restore-keys: |
-          openwrt-dl-${{ hashFiles('diy-part1.sh') }}-
-          openwrt-dl-
+          openwrt-dl-24.10-${{ hashFiles('diy-part1.sh') }}-
+          openwrt-dl-24.10-
 
     # 配置第三方feeds源
     - name: Load custom feeds
@@ -77,10 +77,10 @@ jobs:
         path: |
           /workdir/openwrt/staging_dir
           /workdir/openwrt/build_dir
-        key: openwrt-build-${{ hashFiles('config.txt') }}-${{ github.run_id }}
+        key: openwrt-build-24.10-${{ hashFiles('config.txt') }}-${{ github.run_id }}
         restore-keys: |
-          openwrt-build-${{ hashFiles('config.txt') }}-
-          openwrt-build-
+          openwrt-build-24.10-${{ hashFiles('config.txt') }}-
+          openwrt-build-24.10-
 
     # 更新feeds
     - name: Update feeds
@@ -122,6 +122,37 @@ jobs:
         make download -j8
         find dl -size -1024c -exec rm -f {} \;
 
+    # CUPS 汉化集成（编译前替换源码中的模板）
+    - name: Integrate CUPS Chinese localization
+      run: |
+        cd openwrt
+        
+        if [ -f "$GITHUB_WORKSPACE/CUPS_2.3.1_zh_CN.zip" ]; then
+            echo "集成CUPS中文汉化..."
+            unzip -o $GITHUB_WORKSPACE/CUPS_2.3.1_zh_CN.zip -d /tmp/cups-zh
+            
+            # 替换 printing feed 中的 cups 模板
+            if [ -d "feeds/printing/cups" ]; then
+                # 找到 cups 源码中的 templates 目录并替换
+                for tmpl_dir in $(find feeds/printing -name "templates" -type d 2>/dev/null); do
+                    if [ -d "$tmpl_dir" ]; then
+                        cp -r /tmp/cups-zh/zh_CN/* "$tmpl_dir/" 2>/dev/null || true
+                        echo "  - 已替换: $tmpl_dir"
+                    fi
+                done
+            fi
+            
+            # 集成首页到 base-files（首页不冲突）
+            mkdir -p package/base-files/files/usr/share/cups/doc-root
+            cp /tmp/cups-zh/index.html package/base-files/files/usr/share/cups/doc-root/ 2>/dev/null || true
+            chmod -R 755 package/base-files/files/usr/share/cups/doc-root
+            
+            rm -rf /tmp/cups-zh
+            echo "CUPS汉化集成完成"
+        else
+            echo "警告: 未找到CUPS_2.3.1_zh_CN.zip，跳过汉化"
+        fi
+
     # 编译固件
     - name: Compile the firmware
       id: compile
@@ -138,7 +169,7 @@ jobs:
       uses: actions/upload-artifact@main
       if: steps.compile.outputs.status == 'success' && !cancelled()
       with:
-        name: OpenWrt_firmware${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
+        name: OpenWrt_24.10_firmware${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
         path: openwrt/bin/targets/*/*
 
     # 创建Git标签
