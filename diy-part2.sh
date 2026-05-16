@@ -24,68 +24,6 @@ echo "[3/6] 设置默认主题为Material..."
 sed -i 's/luci-theme-bootstrap/luci-theme-material/g' feeds/luci/collections/luci/Makefile 2>/dev/null || true
 sed -i 's/luci-theme-bootstrap/luci-theme-material/g' package/feeds/luci/luci/Makefile 2>/dev/null || true
 
-# 4. 添加 Full Cone NAT 模块
-echo "[4/6] 添加 Full Cone NAT 模块..."
-FULLCONENAT_DIR="package/iptables-mod-fullconenat"
-
-# 清理旧版本
-rm -rf "$FULLCONENAT_DIR" 2>/dev/null
-
-# 尝试多个 git 源
-GIT_SOURCES=(
-  "https://github.com/yujincheng08/openwrt-iptables-mod-fullconenat.git"
-  "https://gitlab.com/yujincheng08/openwrt-iptables-mod-fullconenat.git"
-  "https://github.com/kenzok8/openwrt-iptables-mod-fullconenat.git"
-)
-
-CLONE_SUCCESS=0
-for src in "${GIT_SOURCES[@]}"; do
-  echo "  尝试克隆: $src"
-  if git clone --depth 1 "$src" /tmp/fullconenat 2>/dev/null; then
-    cp -r /tmp/fullconenat "$FULLCONENAT_DIR"
-    rm -rf /tmp/fullconenat
-    CLONE_SUCCESS=1
-    echo "  - Full Cone NAT 模块克隆成功"
-    break
-  fi
-done
-
-if [ $CLONE_SUCCESS -eq 0 ]; then
-  echo "  - 警告: Full Cone NAT 克隆失败，创建本地版本..."
-  # 创建本地 fullconenat 包
-  mkdir -p "$FULLCONENAT_DIR"
-  cat > "$FULLCONENAT_DIR/Makefile" << 'MAKEEOF'
-include $(TOPDIR)/rules.mk
-PKG_NAME:=iptables-mod-fullconenat
-PKG_VERSION:=1.0
-PKG_RELEASE:=1
-include $(INCLUDE_DIR)/package.mk
-
-define Package/iptables-mod-fullconenat
-  SECTION:=net
-  CATEGORY:=Network
-  SUBMENU:=Firewall
-  TITLE:=Full Cone NAT iptables extension
-  DEPENDS:=+kmod-ipt-nat +iptables-mod-nat-extra
-endef
-
-define Package/iptables-mod-fullconenat/description
-  Full Cone NAT (also known as 1:1 NAT) iptables extension.
-  Useful for P2P applications and gaming.
-endef
-
-define Build/Compile
-endef
-
-define Package/iptables-mod-fullconenat/install
-	$(INSTALL_DIR) $(1)/usr/lib/iptables
-endef
-
-$(eval $(call BuildPackage,iptables-mod-fullconenat))
-MAKEEOF
-  echo "  - 本地 fullconenat 包已创建（占位版本）"
-fi
-
 # 5. 创建 CUPS 中文汉化包
 echo "[5/6] 创建 CUPS 中文汉化包..."
 
