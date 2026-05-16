@@ -1,6 +1,7 @@
 #
 # OpenWrt 24.10 Official Stable Configuration
 # Target: x86_64
+# 新增: Full Cone NAT + NAT类型检测
 #
 
 # ============================================
@@ -129,7 +130,7 @@ CONFIG_PACKAGE_ddns-scripts-cloudflare=y
 CONFIG_PACKAGE_ddns-scripts-dnspod=y
 
 # ============================================
-# UPnP
+# UPnP（自动端口映射，配合Full Cone NAT使用）
 # ============================================
 CONFIG_PACKAGE_luci-app-upnp=y
 CONFIG_PACKAGE_luci-i18n-upnp-zh-cn=y
@@ -312,6 +313,18 @@ CONFIG_PACKAGE_luci-i18n-pbr-zh-cn=y
 # frp 内网穿透
 # ============================================
 CONFIG_PACKAGE_frp=y
+
+# ============================================
+# Full Cone NAT（全锥形NAT，改善P2P/游戏/视频会议连接）
+# 内核模块 + iptables扩展
+# ============================================
+CONFIG_PACKAGE_kmod-ipt-fullconenat=y
+CONFIG_PACKAGE_iptables-mod-fullconenat=y
+
+# ============================================
+# NAT类型检测工具（刷机后可测试NAT类型）
+# ============================================
+CONFIG_PACKAGE_stun-client=y
 
 # ============================================
 # 禁用不需要的包
