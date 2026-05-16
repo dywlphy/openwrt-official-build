@@ -176,9 +176,9 @@ cat > /etc/avahi/services/cups.service << 'AVAHI'
 </service-group>
 AVAHI
 
-# 4. 重启服务
-[ -x /etc/init.d/avahi-daemon ] && /etc/init.d/avahi-daemon restart 2>/dev/null
-[ -x /etc/init.d/cupsd ] && /etc/init.d/cupsd restart 2>/dev/null
+# 4. 启用并重载服务（首次启动时其他init脚本可能未完成，用enable+reload更安全）
+[ -x /etc/init.d/avahi-daemon ] && /etc/init.d/avahi-daemon enable && /etc/init.d/avahi-daemon reload 2>/dev/null
+[ -x /etc/init.d/cupsd ] && /etc/init.d/cupsd enable && /etc/init.d/cupsd reload 2>/dev/null
 
 echo "CUPS配置完成"
 exit 0
@@ -232,3 +232,13 @@ echo "  - VPN: WireGuard + pbr"
 echo "  - 网络: Tailscale/ACME/frp"
 echo "  - 控制: timecontrol"
 echo "=========================================="
+
+# 7. 强制重编译 base-files，确保 files/ 下的新增文件生效
+#    解决增量编译时 base-files 被跳过的问题
+echo ""
+echo "[额外] 强制重编译 base-files 以包含 uci-defaults 脚本..."
+touch package/base-files/Makefile
+make package/base-files/clean V=s 2>&1 | tail -n 5
+make package/base-files/compile V=s 2>&1 | tail -n 5
+make package/base-files/install V=s 2>&1 | tail -n 5
+echo "  - base-files 重编译完成"
