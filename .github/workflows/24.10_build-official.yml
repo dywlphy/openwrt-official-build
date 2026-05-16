@@ -116,6 +116,13 @@ jobs:
         echo ""
         echo "--- cups-zh-cn Makefile ---"
         test -f package/cups-zh-cn/Makefile && echo "OK: Makefile存在" || echo "FAIL: Makefile不存在"
+        echo ""
+        echo "--- uci-defaults脚本内容检查 ---"
+        head -3 package/base-files/files/etc/uci-defaults/98-cups-zh-cn 2>/dev/null
+        head -3 package/base-files/files/etc/uci-defaults/99-grub-timeout 2>/dev/null
+        echo ""
+        echo "--- base-files/files/etc/uci-defaults/ 目录内容 ---"
+        ls -la package/base-files/files/etc/uci-defaults/ 2>/dev/null
 
     # SSH调试（可选）
     - name: SSH connection to Actions
@@ -179,6 +186,26 @@ jobs:
         echo "Build Date: $(date '+%Y-%m-%d %H:%M:%S')" >> release/build_info.txt
         echo "Target: x86_64" >> release/build_info.txt
         echo "Features: CUPS+Avahi+WireGuard+pbr+Tailscale+ACME+frp+timecontrol+nft-fullcone" >> release/build_info.txt
+
+    # 验证固件中是否包含 uci-defaults 脚本
+    - name: Verify uci-defaults in firmware
+      if: steps.compile.outputs.status == 'success'
+      run: |
+        cd openwrt
+        echo "=== 验证固件中的 uci-defaults ==="
+        FIRMWARE_IMG=$(ls bin/targets/x86/64/openwrt-x86-64-generic-squashfs-combined.img.gz 2>/dev/null | head -1)
+        if [ -n "$FIRMWARE_IMG" ]; then
+          echo "固件文件: $FIRMWARE_IMG"
+          echo ""
+          echo "--- 固件中的 uci-defaults 文件 ---"
+          tar -tzf "$FIRMWARE_IMG" 2>/dev/null | grep "etc/uci-defaults/" || echo "未找到 uci-defaults 文件"
+          echo ""
+          echo "--- 检查自定义脚本 ---"
+          tar -tzf "$FIRMWARE_IMG" 2>/dev/null | grep "98-cups-zh-cn" && echo "OK: CUPS脚本已打包" || echo "FAIL: CUPS脚本未打包"
+          tar -tzf "$FIRMWARE_IMG" 2>/dev/null | grep "99-grub-timeout" && echo "OK: GRUB脚本已打包" || echo "FAIL: GRUB脚本未打包"
+        else
+          echo "未找到固件文件，跳过验证"
+        fi
 
     # 上传固件到 GitHub Release
     - name: Upload to GitHub Release
