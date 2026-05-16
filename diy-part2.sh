@@ -122,7 +122,7 @@ endef
 
 define Package/cups-zh-cn/install
 	$(INSTALL_DIR) $(1)/usr/share/cups/zh_CN
-	$(CP) ./files/usr/share/cups/zh_CN/* $(1)/usr/share/cups/templates/ 2>/dev/null || true
+	$(CP) ./files/usr/share/cups/zh_CN/* $(1)/usr/share/cups/zh_CN/ 2>/dev/null || true
 	$(INSTALL_DIR) $(1)/usr/share/cups/doc-root
 	$(INSTALL_BIN) ./files/usr/share/cups/doc-root/index.html $(1)/usr/share/cups/doc-root/ 2>/dev/null || true
 endef
