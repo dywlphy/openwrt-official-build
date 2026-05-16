@@ -40,10 +40,6 @@ EOF
 # 5. 创建 cups-zh-cn 中文汉化包 + GRUB配置
 echo "[5/5] 创建CUPS汉化包和GRUB配置..."
 
-# GRUB等待时间2秒
-mkdir -p package/base-files/files/boot/grub
-echo "set timeout=2" > package/base-files/files/boot/grub/grub.cfg
-
 # 创建 cups-zh-cn 自定义包
 mkdir -p package/cups-zh-cn/files/usr/share/cups/zh_CN
 mkdir -p package/cups-zh-cn/files/usr/share/cups/doc-root
