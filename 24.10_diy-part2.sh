@@ -35,27 +35,6 @@ else
   echo "  - 警告: 未找到 timecontrol 菜单配置文件"
 fi
 
-# 3.2 修复 printing feed 的 GCC 13 兼容性问题
-echo "[3.2/8] 修复 printing feed GCC 13 兼容性..."
-
-# 修复 brlaser: 删除 test 目录（测试代码在 GCC 13 下编译失败，不影响驱动功能）
-BRLASER_DIR="package/feeds/printing/brlaser"
-if [ -d "$BRLASER_DIR/test" ]; then
-  rm -rf "$BRLASER_DIR/test"
-  echo "  - brlaser: 已删除 test 目录"
-else
-  echo "  - brlaser: test 目录不存在，跳过"
-fi
-
-# 修复 lcms2: 删除 test 目录（测试代码编译失败，不影响核心库功能）
-LCMS2_DIR="package/feeds/printing/lcms2"
-if [ -d "$LCMS2_DIR/test" ]; then
-  rm -rf "$LCMS2_DIR/test"
-  echo "  - lcms2: 已删除 test 目录"
-else
-  echo "  - lcms2: test 目录不存在，跳过"
-fi
-
 # 4. 创建 CUPS 中文汉化包
 echo "[4/8] 创建 CUPS 中文汉化包..."
 
