@@ -104,26 +104,22 @@ jobs:
         cd openwrt
         echo "=== 自定义配置验证 ==="
         echo ""
-        echo "--- CUPS中文模板文件数 ---"
-        find package/cups-zh-cn/files/usr/share/cups/templates/ -type f 2>/dev/null | wc -l
-        echo ""
-        echo "--- CUPS中文文档文件数 ---"
-        find package/cups-zh-cn/files/usr/share/cups/doc-root/ -type f 2>/dev/null | wc -l
+        echo "--- CUPS中文包检查 ---"
+        test -f package/base-files/files/etc/cups-zh/CUPS-zh.zip && echo "OK: CUPS-zh.zip 已复制到固件 ($(du -h package/base-files/files/etc/cups-zh/CUPS-zh.zip | cut -f1))" || echo "FAIL: CUPS-zh.zip 未找到"
         echo ""
         echo "--- uci-defaults脚本 ---"
         test -f package/base-files/files/etc/uci-defaults/97-timecontrol-menu && echo "OK: timecontrol菜单修复脚本存在" || echo "FAIL: timecontrol菜单修复脚本不存在"
         test -f package/base-files/files/etc/uci-defaults/98-cups-zh-cn && echo "OK: CUPS脚本存在" || echo "FAIL: CUPS脚本不存在"
         test -f package/base-files/files/etc/uci-defaults/99-grub-timeout && echo "OK: GRUB脚本存在" || echo "FAIL: GRUB脚本不存在"
         echo ""
-        echo "--- cups-zh-cn Makefile ---"
-        test -f package/cups-zh-cn/Makefile && echo "OK: Makefile存在" || echo "FAIL: Makefile不存在"
-        echo ""
         echo "--- uci-defaults脚本内容检查 ---"
         head -3 package/base-files/files/etc/uci-defaults/97-timecontrol-menu 2>/dev/null
         head -3 package/base-files/files/etc/uci-defaults/98-cups-zh-cn 2>/dev/null
         head -3 package/base-files/files/etc/uci-defaults/99-grub-timeout 2>/dev/null
         echo ""
-        echo "--- base-files/files/etc/uci-defaults/ 目录内容 ---"
+        echo "--- base-files/files/etc/ 目录内容 ---"
+        ls -laR package/base-files/files/etc/cups-zh/ 2>/dev/null
+        echo ""
         ls -la package/base-files/files/etc/uci-defaults/ 2>/dev/null
 
     # SSH调试（可选）
@@ -210,6 +206,7 @@ jobs:
             tar -tzf "$BASE_FILES_IPK" 2>/dev/null | grep "98-cups-zh-cn" && echo "OK: CUPS脚本已打包进base-files" || echo "FAIL: CUPS脚本未打包"
             tar -tzf "$BASE_FILES_IPK" 2>/dev/null | grep "99-grub-timeout" && echo "OK: GRUB脚本已打包进base-files" || echo "FAIL: GRUB脚本未打包"
             tar -tzf "$BASE_FILES_IPK" 2>/dev/null | grep "97-timecontrol-menu" && echo "OK: timecontrol菜单修复脚本已打包进base-files" || echo "FAIL: timecontrol菜单修复脚本未打包"
+            tar -tzf "$BASE_FILES_IPK" 2>/dev/null | grep "cups-zh" && echo "OK: CUPS-zh.zip已打包进base-files" || echo "FAIL: CUPS-zh.zip未打包"
           else
             echo "未找到 base-files ipk，检查 staging_dir..."
             find staging_dir -path "*/base-files/etc/uci-defaults/*" 2>/dev/null | sort
