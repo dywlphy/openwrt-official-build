@@ -19,7 +19,7 @@ src-git printing https://github.com/dywlphy/openwrt-feed-printing.git;main
 src-git timecontrol https://github.com/sirpdboy/luci-app-timecontrol
 src-git frp https://github.com/kuoruan/openwrt-frp.git
 src-git luciappfrpc https://github.com/kuoruan/luci-app-frpc.git
-src-git autoreboot https://github.com/f8q8/luci-app-autoreboot.git
+src-git tailscale https://github.com/tokisakiyuu/luci-app-tailscale.git
 EOF
 
 echo "[2/3] 当前feeds配置:"

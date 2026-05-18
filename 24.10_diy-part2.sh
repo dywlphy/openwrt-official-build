@@ -35,12 +35,8 @@ else
   echo "  - 警告: 未找到 timecontrol 菜单配置文件"
 fi
 
-# 4. 创建 CUPS 中文汉化包
-echo "[4/8] 创建 CUPS 中文汉化包..."
-
-# 创建包目录
-mkdir -p package/cups-zh-cn/files/usr/share/cups/templates
-mkdir -p package/cups-zh-cn/files/usr/share/cups/doc-root
+# 4. 复制 CUPS-zh.zip 到固件（首次启动时解压，确保不被 cups 覆盖）
+echo "[4/8] 复制 CUPS 中文包到固件..."
 
 # 查找 CUPS-zh.zip（仓库根目录，与 config.txt 同目录）
 CUPS_ZIP=""
@@ -53,80 +49,12 @@ done
 
 if [ -n "$CUPS_ZIP" ]; then
   echo "  找到 CUPS 中文包: $CUPS_ZIP"
-  unzip -o "$CUPS_ZIP" -d /tmp/cups-zh
-  # 修复权限（zip可能在Windows上创建，解压后目录缺少执行权限）
-  chmod -R a+rX /tmp/cups-zh
-  sync  # 确保文件写入完成
-
-  # zip 内结构: CUPS-zh/CUPS-2.4.2/usr_share_cups_templates/*.tmpl
-  # zip 内结构: CUPS-zh/CUPS-2.4.2/usr_share_cups_doc-root/*
-  TMPL_DIR=$(find /tmp/cups-zh -type d -name "usr_share_cups_templates" | head -1)
-  DOC_DIR=$(find /tmp/cups-zh -type d -name "usr_share_cups_doc-root" | head -1)
-
-  echo "  - 模板目录: $TMPL_DIR"
-  echo "  - 文档目录: $DOC_DIR"
-
-  if [ -n "$TMPL_DIR" ]; then
-    cp -r "$TMPL_DIR"/* package/cups-zh-cn/files/usr/share/cups/templates/
-    TMPL_COUNT=$(find package/cups-zh-cn/files/usr/share/cups/templates/ -type f | wc -l)
-    echo "  - CUPS 中文模板已复制 ($TMPL_COUNT 个文件)"
-  else
-    echo "  - 错误: 未找到模板目录"
-  fi
-
-  if [ -n "$DOC_DIR" ]; then
-    cp -r "$DOC_DIR"/* package/cups-zh-cn/files/usr/share/cups/doc-root/
-    DOC_COUNT=$(find package/cups-zh-cn/files/usr/share/cups/doc-root/ -type f | wc -l)
-    echo "  - CUPS 中文文档已复制 ($DOC_COUNT 个文件)"
-  else
-    echo "  - 错误: 未找到文档目录"
-  fi
-
-  rm -rf /tmp/cups-zh 2>/dev/null || true
+  mkdir -p package/base-files/files/etc/cups-zh
+  cp "$CUPS_ZIP" package/base-files/files/etc/cups-zh/CUPS-zh.zip
+  echo "  - CUPS-zh.zip 已复制到固件（将在首次启动时解压）"
 else
   echo "  - 警告: 未找到 CUPS-zh.zip，跳过汉化"
 fi
-
-# cups-zh-cn Makefile
-cat > package/cups-zh-cn/Makefile << 'MAKEEOF'
-include $(TOPDIR)/rules.mk
-
-PKG_NAME:=cups-zh-cn
-PKG_VERSION:=2.4.2
-PKG_RELEASE:=1
-
-PKG_MAINTAINER:=OpenWrt Builder
-PKG_LICENSE:=GPL-2.0-only
-
-include $(INCLUDE_DIR)/package.mk
-
-define Package/cups-zh-cn
-  SECTION:=utils
-  CATEGORY:=Utilities
-  TITLE:=CUPS Chinese (Simplified) Templates
-  DEPENDS:=+cups
-  PKGARCH:=all
-endef
-
-define Package/cups-zh-cn/description
-  Simplified Chinese language templates for CUPS web interface.
-  Replaces default English templates after installation.
-endef
-
-define Build/Compile
-endef
-
-define Package/cups-zh-cn/install
-	$(INSTALL_DIR) $(1)/usr/share/cups/templates
-	$(CP) ./files/usr/share/cups/templates/* $(1)/usr/share/cups/templates/
-	$(INSTALL_DIR) $(1)/usr/share/cups/doc-root
-	$(CP) ./files/usr/share/cups/doc-root/* $(1)/usr/share/cups/doc-root/
-endef
-
-$(eval $(call BuildPackage,cups-zh-cn))
-MAKEEOF
-
-echo "  - cups-zh-cn 包已创建"
 
 # 5. 创建 uci-defaults 脚本（首次启动执行）
 echo "[5/8] 创建 uci-defaults 脚本..."
@@ -137,24 +65,36 @@ cat > package/base-files/files/etc/uci-defaults/98-cups-zh-cn << 'CUPSEOF'
 #!/bin/sh
 # 首次启动自动配置CUPS中文汉化和cupsd.conf
 
-# 1. 替换CUPS中文模板和文档（cups-zh-cn包已将文件安装到对应目录）
-#    这里确保文件权限正确
-if [ -d /usr/share/cups/templates ]; then
-    chmod 644 /usr/share/cups/templates/*.tmpl 2>/dev/null
-    echo "CUPS中文模板就绪"
-fi
-# 强制覆盖 index.html（CUPS 2.4.7 的英文版可能覆盖了中文版）
-if [ -f /usr/share/cups/doc-root/index.html ] && ! grep -q "首页" /usr/share/cups/doc-root/index.html 2>/dev/null; then
-    # cups-zh-cn 包已将中文 index.html 安装到同目录，但被 cups 覆盖
-    # 查找 opkg 缓存中的 cups-zh-cn 包并重新解压 doc-root 文件
-    CUPS_ZH_IPK=$(find /tmp/opkg-lists/ /usr/lib/opkg/ -name "cups-zh-cn*" 2>/dev/null | head -1)
-    if [ -n "$CUPS_ZH_IPK" ]; then
-        echo "从包缓存恢复中文 index.html"
+# 1. 解压 CUPS-zh.zip 覆盖英文模板（确保在 cups 安装完成后执行）
+CUPS_ZIP="/etc/cups-zh/CUPS-zh.zip"
+if [ -f "$CUPS_ZIP" ] && [ -x /usr/bin/unzip ]; then
+    unzip -o "$CUPS_ZIP" -d /tmp/cups-zh >/dev/null 2>&1
+    TMPL_DIR=$(find /tmp/cups-zh -type d -name "usr_share_cups_templates" | head -1)
+    DOC_DIR=$(find /tmp/cups-zh -type d -name "usr_share_cups_doc-root" | head -1)
+
+    if [ -n "$TMPL_DIR" ]; then
+        cp -r "$TMPL_DIR"/* /usr/share/cups/templates/
+        chmod 644 /usr/share/cups/templates/*.tmpl 2>/dev/null
+        echo "CUPS中文模板已安装"
     fi
-    # 直接用 sed 将英文导航替换为中文
-    sed -i 's|>Home<|>首页<|g; s|>Administration<|>管理<|g; s|>Classes<|>类<|g; s|>Jobs<|>任务<|g; s|>Printers<|>打印机<|g; s|>Help<|>帮助<|g' /usr/share/cups/doc-root/index.html
-    sed -i 's|CUPS for Users|用户|g; s|CUPS for Administrators|管理员|g; s|CUPS for Developers|开发人员|g' /usr/share/cups/doc-root/index.html
-    echo "CUPS首页已汉化"
+
+    if [ -n "$DOC_DIR" ]; then
+        cp -r "$DOC_DIR"/* /usr/share/cups/doc-root/
+        chmod 644 /usr/share/cups/doc-root/*.html 2>/dev/null
+        echo "CUPS中文文档已安装"
+    fi
+
+    chmod -R a+rX /usr/share/cups/templates/ /usr/share/cups/doc-root/ 2>/dev/null
+    rm -rf /tmp/cups-zh 2>/dev/null
+    rm -f "$CUPS_ZIP"
+    echo "CUPS汉化完成（zip已删除释放空间）"
+else
+    # 备用方案：直接用 sed 汉化首页导航栏
+    if [ -f /usr/share/cups/doc-root/index.html ]; then
+        sed -i 's|>Home<|>首页<|g; s|>Administration<|>管理<|g; s|>Classes<|>类<|g; s|>Jobs<|>任务<|g; s|>Printers<|>打印机<|g; s|>Help<|>帮助<|g' /usr/share/cups/doc-root/index.html
+        sed -i 's|CUPS for Users|用户|g; s|CUPS for Administrators|管理员|g; s|CUPS for Developers|开发人员|g' /usr/share/cups/doc-root/index.html
+        echo "CUPS首页已汉化（sed备用方案）"
+    fi
 fi
 
 # 2. 配置cupsd.conf（局域网访问 + Avahi发现）
@@ -243,6 +183,19 @@ GRUBEOF
 chmod +x package/base-files/files/etc/uci-defaults/99-grub-timeout
 echo "  - GRUB uci-defaults脚本已创建"
 
+# opkg 换国内源（清华镜像）
+cat > package/base-files/files/etc/uci-defaults/96-opkg-mirror << 'MIREOF'
+#!/bin/sh
+# 替换 opkg 源为清华镜像（国内访问更快）
+if [ -f /etc/opkg/distfeeds.conf ]; then
+    sed -i 's|downloads.openwrt.org|mirrors.tuna.tsinghua.edu.cn/openwrt|g' /etc/opkg/distfeeds.conf
+    echo "opkg 已切换为清华镜像源"
+fi
+exit 0
+MIREOF
+chmod +x package/base-files/files/etc/uci-defaults/96-opkg-mirror
+echo "  - opkg 国内源 uci-defaults脚本已创建"
+
 # timecontrol 菜单路径修复（首次启动时执行，确保包安装后仍生效）
 cat > package/base-files/files/etc/uci-defaults/97-timecontrol-menu << 'TCEOF'
 #!/bin/sh
@@ -276,10 +229,8 @@ EOF
 # 调试信息
 echo ""
 echo "  === 自定义包文件统计 ==="
-CUPS_TMPL=$(find package/cups-zh-cn/files/usr/share/cups/templates/ -type f 2>/dev/null | wc -l)
-CUPS_DOC=$(find package/cups-zh-cn/files/usr/share/cups/doc-root/ -type f 2>/dev/null | wc -l)
-echo "  - CUPS中文模板: $CUPS_TMPL 个"
-echo "  - CUPS中文文档: $CUPS_DOC 个"
+CUPS_ZIP_SIZE=$(du -h package/base-files/files/etc/cups-zh/CUPS-zh.zip 2>/dev/null | cut -f1)
+echo "  - CUPS中文包: ${CUPS_ZIP_SIZE:-未找到}"
 echo "  - CUPS uci-defaults: $(test -f package/base-files/files/etc/uci-defaults/98-cups-zh-cn && echo '存在' || echo '不存在')"
 echo "  - GRUB uci-defaults: $(test -f package/base-files/files/etc/uci-defaults/99-grub-timeout && echo '存在' || echo '不存在')"
 
@@ -287,7 +238,7 @@ echo "=========================================="
 echo "构建信息:"
 echo "  - OpenWrt版本: 24.10 Official Stable"
 echo "  - 目标平台: x86_64"
-echo "  - 打印: CUPS + Avahi + 中文(cups-zh-cn)"
+echo "  - 打印: CUPS + Avahi + 中文(CUPS-zh.zip首次启动解压)"
 echo "  - NAT: Full Cone NAT (kmod-nft-fullcone)"
 echo "  - VPN: WireGuard + pbr"
 echo "  - 网络: Tailscale/ACME/frp"
