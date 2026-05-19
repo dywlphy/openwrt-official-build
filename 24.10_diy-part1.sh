@@ -20,6 +20,8 @@ src-git timecontrol https://github.com/sirpdboy/luci-app-timecontrol
 src-git frp https://github.com/kuoruan/openwrt-frp.git
 src-git luciappfrpc https://github.com/kuoruan/luci-app-frpc.git
 src-git tailscale https://github.com/tokisaki-galaxy/luci-app-tailscale-community.git
+src-git passwall_packages https://github.com/dywlphy/openwrt-passwall-packages.git;main
+src-git passwall2 https://github.com/dywlphy/openwrt-passwall2.git;main
 EOF
 
 echo "[2/3] 当前feeds配置:"
