@@ -408,6 +408,15 @@ echo "[8/8] 触发 base-files 重新打包..."
 touch package/base-files/Makefile
 echo " ✅ base-files Makefile 时间戳已更新"
 
+
+
+if ! grep -q "CONFIG_PACKAGE_luci-app-passwall2=y" .config; then
+    echo "CONFIG_PACKAGE_luci-app-passwall2=y" >> .config
+    echo " ✅ 已添加 PassWall 2 到 .config"
+fi
+
+
+
 # ============================================
 # 调试信息
 # ============================================
