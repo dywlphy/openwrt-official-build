@@ -61,6 +61,23 @@ else
   echo " ❌ 未找到 CUPS-zh.zip，汉化将跳过"
 fi
 
+# 复制 CUPS 中文翻译文件（cups.mo）用于汉化 cupsd 内置首页
+CUPS_MO=""
+for mo_name in "cups.mo"; do
+  if [ -f "$GITHUB_WORKSPACE/$mo_name" ]; then
+    CUPS_MO="$GITHUB_WORKSPACE/$mo_name"
+    break
+  fi
+done
+
+if [ -n "$CUPS_MO" ]; then
+  mkdir -p package/base-files/files/etc/cups-zh
+  cp "$CUPS_MO" package/base-files/files/etc/cups-zh/cups.mo
+  echo " ✅ cups.mo 已复制 ($(du -h package/base-files/files/etc/cups-zh/cups.mo | cut -f1))"
+else
+  echo " ⚠️ 未找到 cups.mo，cupsd内置首页将保持英文"
+fi
+
 # 5. 创建 uci-defaults 脚本（首次启动执行）
 echo ""
 echo "[5/7] 创建 uci-defaults 脚本..."
@@ -105,8 +122,11 @@ cat > package/base-files/files/etc/uci-defaults/98-cups-zh-cn << 'CUPSEOF'
 CUPS_ZIP="/etc/cups-zh/CUPS-zh.zip"
 if [ -f "$CUPS_ZIP" ] && [ -x /usr/bin/unzip ]; then
     unzip -o "$CUPS_ZIP" -d /tmp/cups-zh >/dev/null 2>&1
-    TMPL_DIR=$(find /tmp/cups-zh -type d -name "usr_share_cups_templates" | head -1)
-    DOC_DIR=$(find /tmp/cups-zh -type d -name "usr_share_cups_doc-root" | head -1)
+    # 兼容两种zip内部路径结构: usr/share/cups/ 或 usr_share_cups_
+    TMPL_DIR=$(find /tmp/cups-zh -type d -name "templates" -path "*/cups/*" | head -1)
+    DOC_DIR=$(find /tmp/cups-zh -type d -name "doc-root" -path "*/cups/*" | head -1)
+    [ -z "$TMPL_DIR" ] && TMPL_DIR=$(find /tmp/cups-zh -type d -name "usr_share_cups_templates" | head -1)
+    [ -z "$DOC_DIR" ] && DOC_DIR=$(find /tmp/cups-zh -type d -name "usr_share_cups_doc-root" | head -1)
 
     if [ -n "$TMPL_DIR" ]; then
         cp -r "$TMPL_DIR"/* /usr/share/cups/templates/
@@ -115,6 +135,7 @@ if [ -f "$CUPS_ZIP" ] && [ -x /usr/bin/unzip ]; then
     fi
 
     if [ -n "$DOC_DIR" ]; then
+        mkdir -p /usr/share/cups/doc-root/
         cp -r "$DOC_DIR"/* /usr/share/cups/doc-root/
         chmod 644 /usr/share/cups/doc-root/*.html 2>/dev/null
         echo "CUPS中文文档已安装"
@@ -133,7 +154,17 @@ else
     fi
 fi
 
-# 2. 配置cupsd.conf（局域网访问 + Avahi发现）
+# 2. 安装 CUPS 中文翻译文件（cups.mo）用于汉化 cupsd 内置首页
+CUPS_MO="/etc/cups-zh/cups.mo"
+if [ -f "$CUPS_MO" ]; then
+    mkdir -p /usr/share/locale/zh_CN/LC_MESSAGES
+    cp "$CUPS_MO" /usr/share/locale/zh_CN/LC_MESSAGES/cups.mo
+    chmod 644 /usr/share/locale/zh_CN/LC_MESSAGES/cups.mo
+    rm -f "$CUPS_MO"
+    echo "CUPS中文翻译文件已安装"
+fi
+
+# 3. 配置cupsd.conf（局域网访问 + Avahi发现 + 中文语言）
 mkdir -p /etc/cups
 cat > /etc/cups/cupsd.conf << 'CONF'
 Listen *:631
@@ -142,6 +173,7 @@ LogLevel warn
 AccessLog /var/log/cups/access_log
 ErrorLog /var/log/cups/error_log
 DefaultPolicy default
+DefaultLanguage zh_CN
 
 <Location />
   Order allow,deny
@@ -176,7 +208,7 @@ Browsing On
 BrowseLocalProtocols dnssd
 CONF
 
-# 3. 配置Avahi服务（打印机发现）
+# 4. 配置Avahi服务（打印机发现）
 mkdir -p /etc/avahi/services
 cat > /etc/avahi/services/cups.service << 'AVAHI'
 <?xml version="1.0" standalone='no'?>
@@ -193,11 +225,11 @@ cat > /etc/avahi/services/cups.service << 'AVAHI'
 </service-group>
 AVAHI
 
-# 4. 启用并重载服务（首次启动时其他init脚本可能未完成，用enable+reload更安全）
+# 5. 启用并重载服务（首次启动时其他init脚本可能未完成，用enable+reload更安全）
 [ -x /etc/init.d/avahi-daemon ] && /etc/init.d/avahi-daemon enable && /etc/init.d/avahi-daemon reload 2>/dev/null
 [ -x /etc/init.d/cupsd ] && /etc/init.d/cupsd enable && /etc/init.d/cupsd reload 2>/dev/null
 
-# 5. 将默认用户加入 lpadmin 组（允许管理打印机）
+# 6. 将默认用户加入 lpadmin 组（允许管理打印机）
 usermod -a -G lpadmin root 2>/dev/null
 
 echo "CUPS配置完成"
