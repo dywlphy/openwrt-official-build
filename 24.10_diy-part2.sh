@@ -51,21 +51,21 @@ else
 fi
 
 # ============================================
-# 3.2 修改 cups 编译配置以支持 NLS（后端汉化关键）
+# 3.2 修改 cups 编译配置以支持 NLS（后端汉化关键 - 修复版）
 # ============================================
 echo ""
 echo "[3.2/8] 修改 cups 编译配置启用 NLS..."
 CUPS_MAKEFILE=$(find feeds -name Makefile -path '*/cups/*' 2>/dev/null | grep -v "cups-bjnp\|cups-filters\|libcups" | head -1)
 if [ -n "$CUPS_MAKEFILE" ]; then
-    # 启用本地化支持
-    if grep -q "\-\-disable-nls" "$CUPS_MAKEFILE"; then
-        sed -i 's/--disable-nls/--enable-nls/' "$CUPS_MAKEFILE"
-        echo " ✅ CUPS NLS 已启用"
-    else
-        echo " ⚠️ CUPS Makefile 中未找到 --disable-nls"
-    fi
+    # 1. 尝试替换（兼容旧版 Makefile 格式，如果失败也无妨）
+    sed -i 's/--disable-nls/--enable-nls/' "$CUPS_MAKEFILE" 2>/dev/null || true
     
-    # 增加对 libintl-full 的依赖
+    # 2. 关键步骤：强制追加 --enable-nls 配置参数
+    # 这行命令会直接在 Makefile 末尾追加新的参数，无论原来有没有，都会生效
+    echo 'CONFIGURE_ARGS += --enable-nls' >> "$CUPS_MAKEFILE"
+    echo " ✅ 已强制追加 --enable-nls 到 CUPS Makefile"
+    
+    # 3. 检查并添加对 libintl-full 的依赖
     if ! grep -q "libintl-full" "$CUPS_MAKEFILE"; then
         sed -i '/DEPENDS:=/s/$/ +libintl-full/' "$CUPS_MAKEFILE"
         echo " ✅ libintl-full 依赖已添加"
