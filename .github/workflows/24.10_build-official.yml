@@ -88,7 +88,11 @@ jobs:
 
     # 安装feeds
     - name: Install feeds
-      run: cd openwrt && ./scripts/feeds install -a
+      run: |
+        cd openwrt
+        ./scripts/feeds install -a
+        # 立即卸载 geoview（Go >= 1.25.0 required, 24.10 only has 1.23.12）
+        ./scripts/feeds uninstall -p passwall_packages geoview 2>/dev/null || true
 
     # 加载自定义配置
     - name: Load custom configuration
@@ -156,6 +160,9 @@ jobs:
         fi
 
         make defconfig
+        # defconfig 后再次强制禁用（defconfig 可能从 feeds 重新拉入）
+        sed -i 's/CONFIG_PACKAGE_geoview=[ym]/# CONFIG_PACKAGE_geoview is not set/' .config
+        grep -q "^CONFIG_PACKAGE_geoview=" .config && sed -i 's/^CONFIG_PACKAGE_geoview=.*/# CONFIG_PACKAGE_geoview is not set/' .config
         make download -j8
         find dl -size -1024c -exec rm -f {} \;
 
